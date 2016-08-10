@@ -61,9 +61,11 @@ int get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int 
 	return nFileCnt;
 }
 
-static FILE * init_file(lame_t gf, const char *inFile, char *outFile, int nFile)
+static FILE * init_file(lame_t *pgf, const char *inFile, char *outFile, int nFile)
 {
 	FILE *outf;
+
+	*pgf = lame_init();
 
 	if (strcmp(inFile, outFile) == 0) {
 		fprintf(stderr, "ERROR: The input file name is same with output file name. Abort.\n");
@@ -75,13 +77,23 @@ static FILE * init_file(lame_t gf, const char *inFile, char *outFile, int nFile)
 		return NULL;
 	}
 
-	if (init_infile(gf, inFile, nFile) < 0) {
+	if (init_infile(*pgf, inFile, nFile) < 0) {
 		fprintf(stderr, "ERROR: Initializing input file failed.\n");
 		return NULL;
 	}
 
 	if ((outf = init_outfile(outFile)) == NULL) {
 		fprintf(stderr, "ERROR: Initializing output file failed.\n");
+		return NULL;
+	}
+
+	/* turn off automatic writing of ID3 tag data into mp3 stream
+	 * we have to call it before 'lame_init_params', because that
+	 * function would spit out ID3v2 tag data.
+	 */
+	lame_set_write_id3tag_automatic(*pgf, 0);
+	if (lame_init_params(*pgf) < 0) {
+		fprintf(stderr, "ERROR: lame_init_params() error.\n");
 		return NULL;
 	}
 
@@ -116,21 +128,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-
 	for (int i = 0; i < nFiles; i++) {
-
-		gf[i] = lame_init();
-
-		/* turn off automatic writing of ID3 tag data into mp3 stream
-			 * we have to call it before 'lame_init_params', because that
-			 * function would spit out ID3v2 tag data.
-			 */
-		lame_set_write_id3tag_automatic(gf[i], 0);
-		if (lame_init_params(gf[i]) < 0) {
-			fprintf(stderr, "lame_init_params error\n");
-		}
-
-		if ((outf[i] = init_file(gf[i], inFileList[i], outFileList[i], i)) == NULL) {
+		if ((outf[i] = init_file(&gf[i], inFileList[i], outFileList[i], i)) == NULL) {
 			fprintf(stderr, "ERROR: init_file failed (#%d, %s)\n", i, inFileList[i]);
 			return -1;
 		}
@@ -147,7 +146,7 @@ int main(int argc, char *argv[])
 		(params + i)->nFile = i;
 
 		printf("Thread %d creates\n", i);
-		printf(" %s, %s, #%02d\n", (params + i)->inPath, (params + i)->outPath, (params + i)->nFile);
+//		printf(" %s, %s, #%02d\n", (params + i)->inPath, (params + i)->outPath, (params + i)->nFile);
 
 		pthread_create(&tid[i], NULL, lame_encoder_loop, (void *)(params + i));
 		lame_init_bitstream(gf[i]);
