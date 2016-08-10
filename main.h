@@ -31,6 +31,8 @@
 
 #define MAX_U_32_NUM    0xFFFFFFFF
 
+#define DIRENT_TYPE_FILE 8
+
 static int const WAV_ID_RIFF = 0x52494646; /* "RIFF" */
 static int const WAV_ID_WAVE = 0x57415645; /* "WAVE" */
 static int const WAV_ID_FMT = 0x666d7420; /* "fmt " */
