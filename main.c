@@ -40,14 +40,15 @@ int get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int 
 				int nFileLength = strlen(pDirEnt->d_name);
 				if (nArgLength + nFileLength > PATH_MAX) {
 					printf("%s", argv[1]);
-					if (argv[1][len - 1] != '/')
+					if (argv[1][nArgLength - 1] != '/')
 						printf("/");
-					printf("%s is too long. Maximum length is %d\n", pDirEnt->d_name, PATH_MAX);
+					printf("%s is too long. Maximum length is %d\n",
+							pDirEnt->d_name, PATH_MAX);
 
 					continue;
 				}
 				strcpy(inlist[nFileCnt], argv[1]);
-				if (argv[1][len - 1] != '/')
+				if (argv[1][nArgLength - 1] != '/')
 					strcat(inlist[nFileCnt], "/");
 				strcat(inlist[nFileCnt], pDirEnt->d_name);
 
@@ -61,7 +62,8 @@ int get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int 
 	else {
 		if (isWAV(argv[1])) {
 			if (nArgLength > PATH_MAX)
-				fprintf(stderr, "ERROR: %s is too long. Maximum length is %d\n", pDirEnt->d_name, PATH_MAX);
+				fprintf(stderr, "ERROR: %s is too long. Maximum length is %d\n",
+						argv[1], PATH_MAX);
 			else {
 				strcpy(inlist[nFileCnt], argv[1]);
 				if (argc == 3)
