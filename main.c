@@ -116,6 +116,7 @@ int main(int argc, char *argv[])
 	lame_t gf[NAME_MAX];
 	int nFiles;
 	int ret;
+	int i;
 
 	printf("MP3Enc v" VERSION "\n");
 
@@ -128,7 +129,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	for (int i = 0; i < nFiles; i++) {
+	for (i = 0; i < nFiles; i++) {
 		if ((outf[i] = init_file(&gf[i], inFileList[i], outFileList[i], i)) == NULL) {
 			fprintf(stderr, "ERROR: init_file failed (#%d, %s)\n", i, inFileList[i]);
 			return -1;
@@ -138,7 +139,7 @@ int main(int argc, char *argv[])
 
 	pthread_t *tid = malloc(sizeof(pthread_t) * nFiles);
 	th_param_t *params = malloc(sizeof(th_param_t) * nFiles);
-	for (int i = 0; i < nFiles; i++) {
+	for (i = 0; i < nFiles; i++) {
 		(params + i)->gf = gf[i];
 		(params + i)->outf = outf[i];
 		(params + i)->inPath = inFileList[i];
@@ -152,16 +153,16 @@ int main(int argc, char *argv[])
 		lame_init_bitstream(gf[i]);
 	}
 
-	for	(int i = 0; i < nFiles; i++) {
+	for	(i = 0; i < nFiles; i++) {
 		printf("Thread %d joins\n", i);
 		pthread_join(tid[i], (void **)&ret);
 	}
 	if (ret)
 		fprintf(stderr, "ERROR: Encoding is failed\n");
 
-	for	(int j = 0; j < nFiles; j++) {
-		fclose(outf[j]);
-		close_infile(j);
+	for	(i = 0; i < nFiles; i++) {
+		fclose(outf[i]);
+		close_infile(i);
 	}
 
 	return 0;
