@@ -15,16 +15,34 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <assert.h>
-#include <dirent.h>
-#include <pthread.h>
 
+#ifndef _WIN32
+#include <dirent.h>
+#else
+#include <Windows.h>
+#include <tchar.h>
+
+#pragma warning(disable:4996)
+
+/* uncomment this if a system does not have struct timespec */
+#define HAVE_STRUCT_TIMESPEC
+
+#endif
+
+#include <pthread.h>
 #include "lame.h"
 #include "audio.h"
 
 #define VERSION "0.1"
+
 #ifndef PATH_MAX
+#ifdef MAX_PATH
+#define PATH_MAX MAX_PATH
+#else
 #define PATH_MAX 1024
 #endif
+#endif
+
 #ifndef NAME_MAX
 #define NAME_MAX 255
 #endif

@@ -26,7 +26,8 @@ void set_outlist(char outlist[PATH_MAX + 1], const char *filename)
 	strcpy(outlist + len - 3, "mp3");
 }
 
-int get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int argc, char *argv[])
+#if defined (_LINUX)
+int get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int argc, char *argv[])
 {
 	DIR *pDir;
 	struct dirent *pDirEnt;
@@ -76,6 +77,41 @@ int get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int 
 	}
 
 	return nFileCnt;
+}
+
+#elif defined (_WIN32)
+int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int argc, char *argv[])
+{
+	WIN32_FIND_DATA ffd;
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	TCHAR szDir[PATH_MAX];
+	size_t len = 0;
+	DWORD dwError = 0;
+	int nFileCnt = 0;
+
+	memset(szDir, 0x0, PATH_MAX);
+	len = strlen(argv[1]);
+
+	fprintf(stdout, "PATH_MAX is %d\n", PATH_MAX);
+	if (len > (PATH_MAX - 3))
+	{
+		fprintf(stderr, "ERROR: Directory path is too long.\n");
+		return -1;
+	}
+	printf("Came to get_filelist_windows\n");
+	return nFileCnt;
+}
+#endif
+
+int get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int argc, char *argv[])
+{
+	int ret;
+#if defined (_LINUX)
+	ret = get_filelist_linux(inlist, outlist, argc, argv);
+#elif defined (_WIN32)
+	ret = get_filelist_windows(inlist, outlist, argc, argv);
+#endif
+	return ret;
 }
 
 static FILE * init_file(lame_t *pgf, const char *inFile, char *outFile, int nFile)

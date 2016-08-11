@@ -10,6 +10,10 @@
 
 #include "main.h"
 
+#ifdef _WIN32
+#include <stdint.h>
+#endif
+
 int init_infile(lame_t gfp, char const *inPath, int nFile);
 FILE * init_outfile(const char *outFile);
 void close_infile(int nFile);

@@ -22,7 +22,7 @@ OBJS += audio.o
 LIBS = -lmp3lame -lpthread -lm
 
 ifeq ($(UNAME), MINGW)
-LIBDIR += -Llib_mingw
+LIBDIR += -Llib
 LIBS += $(LIBDIR)
 endif
 
