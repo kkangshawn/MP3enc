@@ -991,7 +991,6 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *
 lame_encoder_loop(void *data)
-//lame_encoder_loop(lame_global_flags * gf, FILE * outf, int nogap, char *inPath, char *outPath, int nFile)
 {
     unsigned char mp3buffer[LAME_MAXMP3BUFFER];
     int     Buffer[2][1152];
@@ -1098,7 +1097,7 @@ lame_encoder_loop(void *data)
         fflush(outf);
     }
 
-    printf("%02d: %s   ->   %s ... Done\n", nFile + 1, inPath, outPath);
+    printf("%2d: %-20s -> %-20s ... Done\n", nFile + 1, inPath, outPath);
 
     return (void *)0;
 }
