@@ -34,8 +34,9 @@ int get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1]
 	int nFileCnt = 0;
 	int nArgLength = strlen(argv[1]);
 
-	/* if argv[1] is directory */
 	if ((pDir = opendir(argv[1])) != NULL) {
+		/* if argv[1] is directory */
+
 		while ((pDirEnt = readdir(pDir)) != NULL) {
 			if (pDirEnt->d_type == DIRENT_TYPE_FILE && isWAV(pDirEnt->d_name)) {
 				int nFileLength = strlen(pDirEnt->d_name);
@@ -59,20 +60,19 @@ int get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1]
 		}
 		closedir(pDir);
 	}
-	/* if argv[1] is file */
 	else {
-		if (isWAV(argv[1])) {
-			if (nArgLength > PATH_MAX)
-				fprintf(stderr, "ERROR: %s is too long. Maximum length is %d\n",
-						argv[1], PATH_MAX);
-			else {
-				strcpy(inlist[nFileCnt], argv[1]);
-				if (argc == 3)
-					strcpy(outlist[nFileCnt], argv[2]);
-				else
-					set_outlist(outlist[nFileCnt], argv[1]);
-				nFileCnt++;				
-			}
+		/* if argv[1] is file */
+
+		if (nArgLength > PATH_MAX)
+			fprintf(stderr, "ERROR: %s is too long. Maximum length is %d\n",
+					argv[1], PATH_MAX);
+		else {
+			strcpy(inlist[nFileCnt], argv[1]);
+			if (argc == 3)
+				strcpy(outlist[nFileCnt], argv[2]);
+			else
+				set_outlist(outlist[nFileCnt], argv[1]);
+			nFileCnt++;				
 		}
 	}
 
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
 	for (i = 0; i < nFiles; i++) {
 		if ((outf[i] = init_file(&gf[i], inFileList[i], outFileList[i], i)) == NULL) {
-			fprintf(stderr, "ERROR: init_file failed (#%d, %s)\n", i, inFileList[i]);
+			fprintf(stderr, "ERROR: init_file failed (%s)\n", inFileList[i]);
 			return -1;
 		}
 	}
