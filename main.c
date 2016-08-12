@@ -92,13 +92,55 @@ int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 
 	memset(szDir, 0x0, PATH_MAX);
 	len = strlen(argv[1]);
 
-	fprintf(stdout, "PATH_MAX is %d\n", PATH_MAX);
-	if (len > (PATH_MAX - 3))
-	{
-		fprintf(stderr, "ERROR: Directory path is too long.\n");
+	if (len > (PATH_MAX - 3)) {
+		fprintf(stderr, "ERROR: The length of file name or directory path is too long.\n"
+			"\tMaximum length is %d\n", PATH_MAX);
 		return -1;
 	}
-	printf("Came to get_filelist_windows\n");
+
+#ifdef _UNICODE
+	mbstowcs(szDir, argv[1], len);
+#else
+	strcpy(szDir, argv[1]);
+#endif
+
+	if (szDir[len - 1] == '\\')
+		szDir[len - 1] = '\0';
+	hFind = FindFirstFile(szDir, &ffd);
+	if (hFind == INVALID_HANDLE_VALUE)
+		fprintf(stderr, "ERROR: File or directory not found.\n");
+	else {
+		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
+			/* if argv[1] is file */
+
+			strcpy(inlist[nFileCnt], argv[1]);
+			if (argc == 3)
+				strcpy(outlist[nFileCnt], argv[2]);
+			else
+				set_outlist(outlist[nFileCnt], argv[1]);
+			nFileCnt++;
+		}
+		else if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+			/* if argv[1] is directory */
+			do {
+				_tcscat(szDir, TEXT("\\"));
+				_tprintf(TEXT("\nTarget directory is %s\n\n"), szDir);
+				_tcscat(szDir, TEXT("*"));
+
+			} while (FindNextFile(hFind, &ffd) != 0);
+
+			dwError = GetLastError();
+			if (dwError != ERROR_NO_MORE_FILES)
+			{
+				_tprintf(TEXT("ERROR: FindFirstFile: %d"), dwError);
+			}
+		}
+		else
+			fprintf(stderr, "ERROR: Unknown type - argument is neither a file nor a directory.\n");
+
+		FindClose(hFind);
+	}
+
 	return nFileCnt;
 }
 #endif
