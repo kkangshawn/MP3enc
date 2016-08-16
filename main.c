@@ -133,7 +133,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 #ifdef _UNICODE
 	mbstowcs(szDir, param->szSrcfile, len);
 #else
-	strcpy(szDir, argv[1]);
+	strcpy(szDir, param->szSrcfile);
 #endif
 
 	if (len > 1 && szDir[len - 1] == '\\') {
@@ -146,7 +146,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 		fprintf(stderr, "ERROR: File or directory not found.\n");
 	else {
 		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
-			/* if argv[1] is a file */
+			/* if param->szSrcfile is a file */
 
 			strcpy(inlist[*nFiles], param->szSrcfile);
 			if (param->szDstfile)
@@ -156,7 +156,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 			(*nFiles)++;
 		}
 		else if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-			/* if argv[1] is a directory */
+			/* if param->szSrcfile is a directory */
 
 			_tcscat(szDir, TEXT("\\"));
 			_tprintf(TEXT("\nTarget directory is %s\n"), szDir);
@@ -314,11 +314,18 @@ void parseopt(int argc, char *argv[], opt_set_t *param)
 				if (!param->szSrcfile)
 					param->szSrcfile = strdup(argv[i]);
 				else {
-					fprintf(stderr, "Invalid options. See below usage:\n");
+					fprintf(stderr, "ERROR: Invalid options."
+							" See below usage:\n");
 					deinit_optset(param);
 					usage();
 				}
 			}
+		}
+		if (!param->szSrcfile) {
+			fprintf(stderr, "ERROR: Input file or directory is missing."
+					" See below usage:\n");
+			deinit_optset(param);
+			usage();
 		}
 	}
 }
