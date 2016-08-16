@@ -85,6 +85,7 @@ int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 
 	WIN32_FIND_DATA ffd;
 	HANDLE hFind = INVALID_HANDLE_VALUE;
 	TCHAR szDir[PATH_MAX];
+	char szTemp[PATH_MAX];
 	size_t len = 0;
 	DWORD dwError = 0;
 	int nFileCnt = 0;
@@ -92,13 +93,72 @@ int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 
 	memset(szDir, 0x0, PATH_MAX);
 	len = strlen(argv[1]);
 
-	fprintf(stdout, "PATH_MAX is %d\n", PATH_MAX);
-	if (len > (PATH_MAX - 3))
-	{
-		fprintf(stderr, "ERROR: Directory path is too long.\n");
+	if (len > (PATH_MAX - 3)) {
+		fprintf(stderr, "ERROR: The length of file name or directory path is too long.\n"
+			"\tMaximum length is %d\n", PATH_MAX);
 		return -1;
 	}
-	printf("Came to get_filelist_windows\n");
+
+#ifdef _UNICODE
+	mbstowcs(szDir, argv[1], len);
+#else
+	strcpy(szDir, argv[1]);
+#endif
+
+	if (len > 1 && szDir[len - 1] == '\\') {
+		szDir[len - 1] = '\0';
+		len--;
+	}
+
+	hFind = FindFirstFile(szDir, &ffd);
+	if (hFind == INVALID_HANDLE_VALUE)
+		fprintf(stderr, "ERROR: File or directory not found.\n");
+	else {
+		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
+			/* if argv[1] is a file */
+
+			strcpy(inlist[nFileCnt], argv[1]);
+			if (argc > 2 && argv[2][0] != '-')
+				strcpy(outlist[nFileCnt], argv[2]);
+			else
+				set_outlist(outlist[nFileCnt], argv[1]);
+			nFileCnt++;
+		}
+		else if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+			/* if argv[1] is a directory */
+
+			_tcscat(szDir, TEXT("\\"));
+			_tprintf(TEXT("\nTarget directory is %s\n\n"), szDir);
+			_tcscat(szDir, TEXT("*"));
+			hFind = FindFirstFile(szDir, &ffd);
+			do {
+				memset(szDir + (len + 1), 0x0, PATH_MAX - len);
+				_tcscat(szDir, ffd.cFileName);
+				memset(szTemp, 0x0, PATH_MAX);
+#ifdef _UNICODE
+				wcstombs(szTemp, szDir, PATH_MAX);
+#else
+				strcpy(szTemp, szDir);
+#endif
+				if (isWAV(szTemp)) {
+					strcpy(inlist[nFileCnt], szTemp);
+					set_outlist(outlist[nFileCnt], szTemp);
+					nFileCnt++;
+				}
+			} while (FindNextFile(hFind, &ffd) != 0);
+
+			dwError = GetLastError();
+			if (dwError != ERROR_NO_MORE_FILES)
+			{
+				_tprintf(TEXT("ERROR: FindFirstFile(), %d"), dwError);
+			}
+		}
+		else
+			fprintf(stderr, "ERROR: Unknown type - argument is neither a file nor a directory.\n");
+
+		FindClose(hFind);
+	}
+
 	return nFileCnt;
 }
 #endif
@@ -183,8 +243,9 @@ int main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < nFiles; i++) {
+		//printf("#%02d, %s, %s\n", i + 1, inFileList[i], outFileList[i]);
 		if ((outf[i] = init_file(&gf[i], inFileList[i], outFileList[i], i)) == NULL) {
-			fprintf(stderr, "ERROR: init_file failed (%s)\n", inFileList[i]);
+			fprintf(stderr, "ERROR: init_file() failed, (%s)\n", inFileList[i]);
 			return -1;
 		}
 	}
@@ -200,7 +261,6 @@ int main(int argc, char *argv[])
 		(params + i)->nFile = i;
 
 		printf("Thread %d creates\n", i);
-//		printf(" %s, %s, #%02d\n", (params + i)->inPath, (params + i)->outPath, (params + i)->nFile);
 
 		pthread_create(&tid[i], NULL, lame_encoder_loop, (void *)(params + i));
 		lame_init_bitstream(gf[i]);
