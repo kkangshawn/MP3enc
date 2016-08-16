@@ -33,7 +33,7 @@
 #include "lame.h"
 #include "audio.h"
 
-#define VERSION "0.1"
+#define VERSION "0.2"
 
 #ifndef PATH_MAX
 #ifdef MAX_PATH
@@ -74,5 +74,9 @@ typedef struct th_param {
 	int nFile;
 } th_param_t;
 
-
+typedef struct opt_set {
+	char *szSrcfile;
+	char *szDstfile;
+	unsigned int bRecursion;
+} opt_set_t;
 #endif /* MAIN_H_ */

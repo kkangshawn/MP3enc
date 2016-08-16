@@ -11,7 +11,8 @@
 int isWAV(const char *filename)
 {
 	int len = strlen(filename);
-	if (filename[len - 4] == '.'
+	if (len > 4
+			&& filename[len - 4] == '.'
 			&& filename[len - 3] == 'w'
 			&& filename[len - 2] == 'a'
 			&& filename[len - 1] == 'v')
@@ -21,9 +22,41 @@ int isWAV(const char *filename)
 
 void set_outlist(char outlist[PATH_MAX + 1], const char *filename)
 {
-	int len = strlen(filename);
-	strcpy(outlist, filename);
-	strcpy(outlist + len - 3, "mp3");
+	if (isWAV(filename)) {
+		int len = strlen(filename);
+		strcpy(outlist, filename);
+		strcpy(outlist + len - 3, "mp3");
+	}
+}
+
+opt_set_t * init_optset()
+{
+	opt_set_t *optset;
+	optset = (opt_set_t *)malloc(sizeof(opt_set_t));
+
+	optset->szSrcfile = NULL;
+	optset->szDstfile = NULL;
+	optset->bRecursion = 0;
+
+	return optset;
+}
+
+void deinit_optset(opt_set_t *param)
+{
+	if (param) {
+		if (param->szSrcfile) {
+			free(param->szSrcfile);
+			param->szSrcfile = NULL;
+		}
+		if (param->szDstfile) {
+			free(param->szDstfile);
+			param->szDstfile = NULL;
+		}
+		param->bRecursion = 0;
+
+		free(param);
+		param = NULL;
+	}
 }
 
 #if defined (_LINUX)
@@ -78,9 +111,8 @@ int get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1]
 
 	return nFileCnt;
 }
-
 #elif defined (_WIN32)
-int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int argc, char *argv[])
+void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int *nFiles, const opt_set_t *param)
 {
 	WIN32_FIND_DATA ffd;
 	HANDLE hFind = INVALID_HANDLE_VALUE;
@@ -88,19 +120,18 @@ int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 
 	char szTemp[PATH_MAX];
 	size_t len = 0;
 	DWORD dwError = 0;
-	int nFileCnt = 0;
 
 	memset(szDir, 0x0, PATH_MAX);
-	len = strlen(argv[1]);
+	len = strlen(param->szSrcfile);
 
 	if (len > (PATH_MAX - 3)) {
 		fprintf(stderr, "ERROR: The length of file name or directory path is too long.\n"
 			"\tMaximum length is %d\n", PATH_MAX);
-		return -1;
+		return;
 	}
 
 #ifdef _UNICODE
-	mbstowcs(szDir, argv[1], len);
+	mbstowcs(szDir, param->szSrcfile, len);
 #else
 	strcpy(szDir, argv[1]);
 #endif
@@ -117,18 +148,18 @@ int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 
 		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
 			/* if argv[1] is a file */
 
-			strcpy(inlist[nFileCnt], argv[1]);
-			if (argc > 2 && argv[2][0] != '-')
-				strcpy(outlist[nFileCnt], argv[2]);
+			strcpy(inlist[*nFiles], param->szSrcfile);
+			if (param->szDstfile)
+				strcpy(outlist[*nFiles], param->szDstfile);
 			else
-				set_outlist(outlist[nFileCnt], argv[1]);
-			nFileCnt++;
+				set_outlist(outlist[*nFiles], param->szSrcfile);
+			(*nFiles)++;
 		}
 		else if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			/* if argv[1] is a directory */
 
 			_tcscat(szDir, TEXT("\\"));
-			_tprintf(TEXT("\nTarget directory is %s\n\n"), szDir);
+			_tprintf(TEXT("\nTarget directory is %s\n"), szDir);
 			_tcscat(szDir, TEXT("*"));
 			hFind = FindFirstFile(szDir, &ffd);
 			do {
@@ -141,9 +172,26 @@ int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 
 				strcpy(szTemp, szDir);
 #endif
 				if (isWAV(szTemp)) {
-					strcpy(inlist[nFileCnt], szTemp);
-					set_outlist(outlist[nFileCnt], szTemp);
-					nFileCnt++;
+					strcpy(inlist[*nFiles], szTemp);
+					set_outlist(outlist[*nFiles], szTemp);
+					(*nFiles)++;
+				}
+
+				/* for recursive(-r) option */
+				if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+					&& param->bRecursion) {
+					/* ignore directory name '.\' and '..\' to prevent infinite loop */
+					if (_tcscmp(ffd.cFileName, TEXT(".")) && _tcscmp(ffd.cFileName, TEXT(".."))) {
+						opt_set_t *subdir_param;
+						subdir_param = init_optset();
+						subdir_param->szSrcfile = strdup(szTemp);
+						subdir_param->bRecursion = 1;
+
+						//printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
+						get_filelist_windows(inlist, outlist, nFiles, subdir_param);
+
+						deinit_optset(subdir_param);
+					}
 				}
 			} while (FindNextFile(hFind, &ffd) != 0);
 
@@ -158,20 +206,16 @@ int get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 
 
 		FindClose(hFind);
 	}
-
-	return nFileCnt;
 }
 #endif
 
-int get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int argc, char *argv[])
+void get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int *nFiles, const opt_set_t *param)
 {
-	int ret;
 #if defined (_LINUX)
-	ret = get_filelist_linux(inlist, outlist, argc, argv);
+	get_filelist_linux(inlist, outlist, argc, argv);
 #elif defined (_WIN32)
-	ret = get_filelist_windows(inlist, outlist, argc, argv);
+	get_filelist_windows(inlist, outlist, nFiles, param);
 #endif
-	return ret;
 }
 
 static FILE * init_file(lame_t *pgf, const char *inFile, char *outFile, int nFile)
@@ -215,28 +259,88 @@ static FILE * init_file(lame_t *pgf, const char *inFile, char *outFile, int nFil
 
 void usage()
 {
-	printf("Too few arguments. See below usage:\n"
-			"\tMP3Enc <input_filename [output_filename] | input_directory>\n");
+	printf("Usage:\n"
+		"   MP3enc <input_filename [-o output_filename] | input_directory> [OPTIONS]\n"
+		"\nOptions:\n"
+		"\t-h\tShow help\n"
+		"\t-r\tSearch subdirectories recursively\n"
+		"\nExample:\n"
+		"   MP3enc src.wav -o dest.mp3\n"
+		"   MP3enc wav_dir"
+#if defined (_LINUX)
+		"/"
+#else
+		"\\"
+#endif
+		" -r\n"
+		);
 	exit(0);
+}
+
+/* Not use getopt() for compatibility for Windows */
+void parseopt(int argc, char *argv[], opt_set_t *param)
+{
+	if (argc < 2) {
+		fprintf(stderr, "ERROR: Too few arguments. See below usage:\n");
+		deinit_optset(param);
+		usage();
+	}
+	else {
+		int i;
+
+		for (i = 1; i < argc; i++) {
+			if (!strcmp(argv[i], "-h")) {
+				deinit_optset(param);
+				usage();
+			}
+			else if (!strcmp(argv[i], "-o")) {
+				if (!param->szDstfile) {
+					i++;
+					if (i < argc) {
+						param->szDstfile = strdup(argv[i]);
+					}
+				}
+				else {
+					fprintf(stderr, "ERROR: Duplicated parameter '-o'\n");
+					deinit_optset(param);
+					exit(0);
+				}
+			}
+			else if (!strcmp(argv[i], "-r")) {
+				param->bRecursion = 1;
+			}
+			else {
+				/* Any arguments except for options are regarded as src file */
+				if (!param->szSrcfile)
+					param->szSrcfile = strdup(argv[i]);
+				else {
+					fprintf(stderr, "Invalid options. See below usage:\n");
+					deinit_optset(param);
+					usage();
+				}
+			}
+		}
+	}
 }
 
 int main(int argc, char *argv[])
 {
 	char inFileList[NAME_MAX][PATH_MAX + 1];
 	char outFileList[NAME_MAX][PATH_MAX + 1];
+	opt_set_t *opt_param = NULL;
 
 	FILE *outf[NAME_MAX];
 	lame_t gf[NAME_MAX];
-	int nFiles;
+	int nFiles = 0;
 	int ret;
 	int i;
 
+
 	printf("MP3Enc v" VERSION "\n");
+	opt_param = init_optset();
+	parseopt(argc, argv, opt_param);
 
-	if (argc < 2)
-		usage();
-
-	nFiles = get_filelist(inFileList, outFileList, argc, argv);
+	get_filelist(inFileList, outFileList, &nFiles, opt_param);
 	if (nFiles < 1) {
 		fprintf(stderr, "No files to encoding.\n");
 		return -1;
@@ -277,6 +381,7 @@ int main(int argc, char *argv[])
 		fclose(outf[i]);
 		close_infile(i);
 	}
+	deinit_optset(opt_param);
 
 	return 0;
 }
