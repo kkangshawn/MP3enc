@@ -59,57 +59,70 @@ void deinit_optset(opt_set_t *param)
 	}
 }
 
-#if defined (_LINUX)
-int get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int argc, char *argv[])
+#if defined (__linux)
+void get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int *nFiles, const opt_set_t *param)
 {
 	DIR *pDir;
 	struct dirent *pDirEnt;
-	int nFileCnt = 0;
-	int nArgLength = strlen(argv[1]);
+	int nArgLength = strlen(param->szSrcfile);
+	char szTemp[PATH_MAX];
 
-	if ((pDir = opendir(argv[1])) != NULL) {
-		/* if argv[1] is directory */
+	if ((pDir = opendir(param->szSrcfile)) != NULL) {
+		/* if param->szSrcfile is directory */
 
 		while ((pDirEnt = readdir(pDir)) != NULL) {
+			memset(szTemp, 0x0, PATH_MAX);
+			strcpy(szTemp, param->szSrcfile);
+			if (param->szSrcfile[nArgLength - 1] != '/')
+				strcat(szTemp, "/");
+			strcat(szTemp, pDirEnt->d_name);
+
 			if (pDirEnt->d_type == DIRENT_TYPE_FILE && isWAV(pDirEnt->d_name)) {
-				int nFileLength = strlen(pDirEnt->d_name);
-				if (nArgLength + nFileLength > PATH_MAX) {
-					printf("%s", argv[1]);
-					if (argv[1][nArgLength - 1] != '/')
-						printf("/");
+				if (strlen(szTemp) > PATH_MAX) {
 					printf("%s is too long. Maximum length is %d\n",
-							pDirEnt->d_name, PATH_MAX);
+							szTemp, PATH_MAX);
 
 					continue;
 				}
-				strcpy(inlist[nFileCnt], argv[1]);
-				if (argv[1][nArgLength - 1] != '/')
-					strcat(inlist[nFileCnt], "/");
-				strcat(inlist[nFileCnt], pDirEnt->d_name);
+				strcpy(inlist[*nFiles], szTemp);
 
-				set_outlist(outlist[nFileCnt], inlist[nFileCnt]);
-				nFileCnt++;
+				set_outlist(outlist[*nFiles], inlist[*nFiles]);
+				(*nFiles)++;
+			}
+			else if ((pDirEnt->d_type == DIRENT_TYPE_DIRECTORY)
+					&& param->bRecursion) {
+				/* ignore directory name '.\' and '..\' to prevent infinite loop */
+				if (strcmp(pDirEnt->d_name, ".") && strcmp(pDirEnt->d_name, "..")) {
+					opt_set_t *subdir_param;
+					subdir_param = init_optset();
+					subdir_param->szSrcfile = strdup(szTemp);
+					subdir_param->bRecursion = 1;
+
+//					printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
+					get_filelist_linux(inlist, outlist, nFiles, subdir_param);
+
+					deinit_optset(subdir_param);
+				}
 			}
 		}
+
 		closedir(pDir);
 	}
 	else {
-		/* if argv[1] is file */
+		/* if param->szSrcfile is file */
 
 		if (nArgLength > PATH_MAX)
 			fprintf(stderr, "ERROR: %s is too long. Maximum length is %d\n",
-					argv[1], PATH_MAX);
+					param->szSrcfile, PATH_MAX);
 		else {
-			strcpy(inlist[nFileCnt], argv[1]);
-			if (argc == 3)
-				strcpy(outlist[nFileCnt], argv[2]);
+			strcpy(inlist[*nFiles], param->szSrcfile);
+			if (param->szDstfile)
+				strcpy(outlist[*nFiles], param->szDstfile);
 			else
-				set_outlist(outlist[nFileCnt], argv[1]);
-			nFileCnt++;				
+				set_outlist(outlist[*nFiles], param->szSrcfile);
+			(*nFiles)++;
 		}
 	}
-
-	return nFileCnt;
 }
 #elif defined (_WIN32)
 void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int *nFiles, const opt_set_t *param)
@@ -159,7 +172,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 			/* if param->szSrcfile is a directory */
 
 			_tcscat(szDir, TEXT("\\"));
-			_tprintf(TEXT("\nTarget directory is %s\n"), szDir);
+			//_tprintf(TEXT("\nTarget directory is %s\n"), szDir);
 			_tcscat(szDir, TEXT("*"));
 			hFind = FindFirstFile(szDir, &ffd);
 			do {
@@ -211,8 +224,8 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 
 void get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int *nFiles, const opt_set_t *param)
 {
-#if defined (_LINUX)
-	get_filelist_linux(inlist, outlist, argc, argv);
+#if defined (__linux)
+	get_filelist_linux(inlist, outlist, nFiles, param);
 #elif defined (_WIN32)
 	get_filelist_windows(inlist, outlist, nFiles, param);
 #endif
@@ -265,9 +278,9 @@ void usage()
 		"\t-h\tShow help\n"
 		"\t-r\tSearch subdirectories recursively\n"
 		"\nExample:\n"
-		"   MP3enc src.wav -o dest.mp3\n"
+		"   MP3enc input.wav -o output.mp3\n"
 		"   MP3enc wav_dir"
-#if defined (_LINUX)
+#if defined (__linux)
 		"/"
 #else
 		"\\"
@@ -321,6 +334,7 @@ void parseopt(int argc, char *argv[], opt_set_t *param)
 				}
 			}
 		}
+
 		if (!param->szSrcfile) {
 			fprintf(stderr, "ERROR: Input file or directory is missing."
 					" See below usage:\n");
@@ -339,9 +353,8 @@ int main(int argc, char *argv[])
 	FILE *outf[NAME_MAX];
 	lame_t gf[NAME_MAX];
 	int nFiles = 0;
-	int ret;
-	int i;
-
+	int ret = 0;
+	int i, j;
 
 	printf("MP3Enc v" VERSION "\n");
 	opt_param = init_optset();
@@ -350,6 +363,11 @@ int main(int argc, char *argv[])
 	get_filelist(inFileList, outFileList, &nFiles, opt_param);
 	if (nFiles < 1) {
 		fprintf(stderr, "No files to encoding.\n");
+		return -1;
+	}
+	else if (nFiles > NAME_MAX) {
+		fprintf(stderr, "ERROR: Input files are too many.\n"
+				"The number of maximum input files is %d", NAME_MAX);
 		return -1;
 	}
 
@@ -371,18 +389,18 @@ int main(int argc, char *argv[])
 		(params + i)->outPath = outFileList[i];
 		(params + i)->nFile = i;
 
-		printf("Thread %d creates\n", i);
-
 		pthread_create(&tid[i], NULL, lame_encoder_loop, (void *)(params + i));
 		lame_init_bitstream(gf[i]);
 	}
+	if (nFiles > 1)
+		printf("%d threads created\n", nFiles);
 
-	for	(i = 0; i < nFiles; i++) {
-		printf("Thread %d joins\n", i);
-		pthread_join(tid[i], (void **)&ret);
+	for	(j = 0; j < nFiles; j++) {
+		pthread_join(tid[j], (void *)&ret);
+//		printf("Thread %d joins, return %d\n", j + 1, ret);
+		if (ret)
+			fprintf(stderr, "ERROR: Encoding #%d is failed\n", j + 1);
 	}
-	if (ret)
-		fprintf(stderr, "ERROR: Encoding is failed\n");
 
 	for	(i = 0; i < nFiles; i++) {
 		fclose(outf[i]);

@@ -19,12 +19,16 @@ LDFLAGS = -static
 OBJS = main.o
 OBJS += audio.o
 
-LIBS = -lmp3lame -lpthread -lm
+ifeq ($(UNAME), Linux)
+LIBS = -lmp3lame
+else ifeq ($(UNAME), MINGW)
+LIBS = -lmp3lame_mingw
+endif
 
-ifeq ($(UNAME), MINGW)
+LIBS += -lpthread -lm
 LIBDIR += -Llib
 LIBS += $(LIBDIR)
-endif
+
 
 ifndef LDO
 LDO=$(CC)
