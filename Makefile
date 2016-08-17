@@ -7,6 +7,10 @@ UNAME = MINGW
 endif
 endif
 
+ifndef ARCH
+ARCH = $(shell uname -m)
+endif
+
 ifndef CFLAGS
 CFLAGS = -MMD -O0 -Wall -g3 -MP
 ifeq ($(UNAME), MINGW)
@@ -20,7 +24,11 @@ OBJS = main.o
 OBJS += audio.o
 
 ifeq ($(UNAME), Linux)
+ifeq ($(ARCH), x86_64)
 LIBS = -lmp3lame
+else ifeq ($(ARCH), armv7l)
+LIBS = -lmp3lame_armv7l
+endif
 else ifeq ($(UNAME), MINGW)
 LIBS = -lmp3lame_mingw
 endif

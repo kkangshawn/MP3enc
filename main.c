@@ -37,6 +37,7 @@ opt_set_t * init_optset()
 	optset->szSrcfile = NULL;
 	optset->szDstfile = NULL;
 	optset->bRecursion = 0;
+	optset->nQualityLevel = 0;
 
 	return optset;
 }
@@ -53,6 +54,7 @@ void deinit_optset(opt_set_t *param)
 			param->szDstfile = NULL;
 		}
 		param->bRecursion = 0;
+		param->nQualityLevel = 0;
 
 		free(param);
 		param = NULL;
@@ -231,11 +233,22 @@ void get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int
 #endif
 }
 
-static FILE * init_file(lame_t *pgf, const char *inFile, char *outFile, int nFile)
+static FILE * init_file(lame_t *pgf, const opt_set_t *param, const char *inFile, char *outFile, int nFile)
 {
 	FILE *outf;
 
 	*pgf = lame_init();
+	if (param->nQualityLevel == QL_MODE_BEST) {
+		lame_set_preset(*pgf, INSANE);
+	}
+	else if (param->nQualityLevel == QL_MODE_FAST) {
+		lame_set_force_ms(*pgf, 1);
+		lame_set_mode(*pgf, JOINT_STEREO);
+	}
+	else {
+        lame_set_VBR_q(*pgf, 2);
+        lame_set_VBR(*pgf, vbr_default);;
+	}
 
 	if (strcmp(inFile, outFile) == 0) {
 		fprintf(stderr, "ERROR: The input file name is same with output file name. Abort.\n");
@@ -275,8 +288,13 @@ void usage()
 	printf("Usage:\n"
 		"   MP3enc <input_filename [-o <output_filename>] | input_directory> [OPTIONS]\n"
 		"\nOptions:\n"
-		"\t-h\tShow help\n"
-		"\t-r\tSearch subdirectories recursively\n"
+		"\t-h\t\t Show help\n"
+		"\t-r\t\t Search subdirectories recursively\n"
+		"\t-q <mode>\t Set quality level\n"
+		"\t    fast\t   fast encoding with small file size\n"
+		"\t    standard\t   standard quality - default\n"
+		"\t    best\t   best quality\n"
+
 		"\nExample:\n"
 		"   MP3enc input.wav -o output.mp3\n"
 		"   MP3enc wav_dir"
@@ -285,7 +303,7 @@ void usage()
 #else
 		"\\"
 #endif
-		" -r\n"
+		" -r -q fast\n"
 		);
 	exit(0);
 }
@@ -328,6 +346,39 @@ void parseopt(int argc, char *argv[], opt_set_t *param)
 			else if (!strcmp(argv[i], "-r")) {
 				param->bRecursion = 1;
 			}
+			else if (!strcmp(argv[i], "-q")) {
+				if (!(param->nQualityLevel & QL_SET)) {
+					i++;
+					if (i < argc) {
+						if (!strcmp(argv[i], "fast")) {
+							param->nQualityLevel = QL_MODE_FAST;
+						}
+						else if (!strcmp(argv[i], "standard")) {
+							param->nQualityLevel = QL_MODE_STANDARD;
+						}
+						else if (!strcmp(argv[i], "best")) {
+							param->nQualityLevel = QL_MODE_BEST;
+						}
+						else {
+							fprintf(stderr, "ERROR: Invalid options."
+									" See below usage:\n");
+							deinit_optset(param);
+							usage();
+						}
+					}
+					else {
+						fprintf(stderr, "ERROR: '-q' option requires mode name."
+								" See below usage:\n");
+						deinit_optset(param);
+						usage();
+					}
+				}
+				else {
+					fprintf(stderr, "ERROR: Duplicated parameter '-q'\n");
+					deinit_optset(param);
+					exit(0);
+				}
+			}
 			else {
 				/* Any arguments except for options are regarded as src file */
 				if (!param->szSrcfile)
@@ -362,7 +413,7 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	int i, j;
 
-	printf("MP3Enc v" VERSION "\n");
+	printf("MP3enc v" VERSION "\n");
 	opt_param = init_optset();
 	parseopt(argc, argv, opt_param);
 
@@ -379,7 +430,8 @@ int main(int argc, char *argv[])
 
 	for (i = 0; i < nFiles; i++) {
 		//printf("#%02d, %s, %s\n", i + 1, inFileList[i], outFileList[i]);
-		if ((outf[i] = init_file(&gf[i], inFileList[i], outFileList[i], i)) == NULL) {
+
+		if ((outf[i] = init_file(&gf[i], opt_param, inFileList[i], outFileList[i], i)) == NULL) {
 			fprintf(stderr, "ERROR: init_file() failed, (%s)\n", inFileList[i]);
 			return -1;
 		}
@@ -411,6 +463,7 @@ int main(int argc, char *argv[])
 	for	(i = 0; i < nFiles; i++) {
 		fclose(outf[i]);
 		close_infile(i);
+		lame_close(gf[i]);
 	}
 	deinit_optset(opt_param);
 

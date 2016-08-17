@@ -33,7 +33,7 @@
 #include "lame.h"
 #include "audio.h"
 
-#define VERSION "0.2"
+#define VERSION "0.3"
 
 #ifndef PATH_MAX
 #ifdef MAX_PATH
@@ -67,6 +67,13 @@ static short const WAVE_FORMAT_IEEE_FLOAT = 0x0003;
 static short const WAVE_FORMAT_EXTENSIBLE = 0xFFFE;
 #endif
 
+enum quality_mode {
+	QL_SET = (1 << 4),
+	QL_MODE_FAST,
+	QL_MODE_STANDARD,
+	QL_MODE_BEST,
+};
+
 typedef struct th_param {
 	lame_global_flags *gf;
 	FILE *outf;
@@ -79,5 +86,6 @@ typedef struct opt_set {
 	char *szSrcfile;
 	char *szDstfile;
 	unsigned int bRecursion;
+	int nQualityLevel;
 } opt_set_t;
 #endif /* MAIN_H_ */
