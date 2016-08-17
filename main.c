@@ -8,6 +8,9 @@
 
 #include "main.h"
 
+/**
+ * @brief	Check given argument has 'wav' filename extension
+ */
 int isWAV(const char *filename)
 {
 	int len = strlen(filename);
@@ -20,6 +23,11 @@ int isWAV(const char *filename)
 	return 0;
 }
 
+/**
+ * @brief	Set output file list with given '.wav' filename then change its extension to 'mp3'
+ * @param [out]	outlist		An output filename with mp3 extension
+ * @param [in]	filename	A name of input wav file
+ */
 void set_outlist(char outlist[PATH_MAX + 1], const char *filename)
 {
 	if (isWAV(filename)) {
@@ -29,6 +37,10 @@ void set_outlist(char outlist[PATH_MAX + 1], const char *filename)
 	}
 }
 
+/**
+ * @brief	Initialize option set
+ * @return	Option set
+ */
 opt_set_t * init_optset()
 {
 	opt_set_t *optset;
@@ -42,6 +54,9 @@ opt_set_t * init_optset()
 	return optset;
 }
 
+/**
+ * @brief	Deinitialize option set
+ */
 void deinit_optset(opt_set_t *param)
 {
 	if (param) {
@@ -61,6 +76,18 @@ void deinit_optset(opt_set_t *param)
 	}
 }
 
+/**
+ * @brief	Get file list from argument.
+ *		Set input file list and output file list.
+ *		If the argument is directory, search all the files in it.
+ *		Ignore files if the filename extension is not 'wav'
+ *		A sub-directory can be searched recursively with option '-r'.
+ *		Linux uses dirent, Windows uses WIN32_FIND_DATA.
+ * @param [out]	inlist		Input filename list
+ * @param [out]	outlist		Output filename list
+ * @param [out]	nFiles		Total number of wav files to be encoded
+ * @param [in]	param		Option set containing name of input and output and option parameters
+ */
 #if defined (__linux)
 void get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int *nFiles, const opt_set_t *param)
 {
@@ -91,9 +118,10 @@ void get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1
 				set_outlist(outlist[*nFiles], inlist[*nFiles]);
 				(*nFiles)++;
 			}
+			/* for recursive(-r) option */
 			else if ((pDirEnt->d_type == DIRENT_TYPE_DIRECTORY)
 					&& param->bRecursion) {
-				/* ignore directory name '.\' and '..\' to prevent infinite loop */
+				/* ignore directory name './' and '../' to prevent infinite loop */
 				if (strcmp(pDirEnt->d_name, ".") && strcmp(pDirEnt->d_name, "..")) {
 					opt_set_t *subdir_param;
 					subdir_param = init_optset();
@@ -174,7 +202,6 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 			/* if param->szSrcfile is a directory */
 
 			_tcscat(szDir, TEXT("\\"));
-			//_tprintf(TEXT("\nTarget directory is %s\n"), szDir);
 			_tcscat(szDir, TEXT("*"));
 			hFind = FindFirstFile(szDir, &ffd);
 			do {
@@ -202,7 +229,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 						subdir_param->szSrcfile = strdup(szTemp);
 						subdir_param->bRecursion = 1;
 
-						//printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
+//						printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
 						get_filelist_windows(inlist, outlist, nFiles, subdir_param);
 
 						deinit_optset(subdir_param);
@@ -233,7 +260,17 @@ void get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int
 #endif
 }
 
-static FILE * init_file(lame_t *pgf, const opt_set_t *param, const char *inFile, char *outFile, int nFile)
+/**
+ * @brief	Initialize each file and lame library.
+ *		Set encoding quality level as set in an option parameter.
+ * @param [out]	pgf	Pointer to lame global flag
+ * @param [in]	param	Option set
+ * @param [in]	inFile	Input filename
+ * @param [in]	outFile	Output filename
+ * @param [in]	nFile	The ID number of the file to be used for get_audio_global_data
+ * @return	Pointer of FILE structure
+ */
+FILE * init_file(lame_t *pgf, const opt_set_t *param, const char *inFile, const char *outFile, int nFile)
 {
 	FILE *outf;
 
@@ -270,10 +307,6 @@ static FILE * init_file(lame_t *pgf, const opt_set_t *param, const char *inFile,
 		return NULL;
 	}
 
-	/* turn off automatic writing of ID3 tag data into mp3 stream
-	 * we have to call it before 'lame_init_params', because that
-	 * function would spit out ID3v2 tag data.
-	 */
 	lame_set_write_id3tag_automatic(*pgf, 0);
 	if (lame_init_params(*pgf) < 0) {
 		fprintf(stderr, "ERROR: lame_init_params() error.\n");
@@ -308,7 +341,10 @@ void usage()
 	exit(0);
 }
 
-/* Not use getopt() for compatibility for Windows */
+/**
+ * @brief	Parse application arguments and set option set parameter.
+ * @remark	Not use getopt() for the benefit of compatibility for Windows
+ */
 void parseopt(int argc, char *argv[], opt_set_t *param)
 {
 	if (argc < 2) {
@@ -380,7 +416,7 @@ void parseopt(int argc, char *argv[], opt_set_t *param)
 				}
 			}
 			else {
-				/* Any arguments except for options are regarded as src file */
+				/* Any arguments except for defined options are regarded as src file */
 				if (!param->szSrcfile)
 					param->szSrcfile = strdup(argv[i]);
 				else {
@@ -406,7 +442,6 @@ int main(int argc, char *argv[])
 	char inFileList[NAME_MAX][PATH_MAX + 1];
 	char outFileList[NAME_MAX][PATH_MAX + 1];
 	opt_set_t *opt_param = NULL;
-
 	FILE *outf[NAME_MAX];
 	lame_t gf[NAME_MAX];
 	int nFiles = 0;
@@ -429,8 +464,6 @@ int main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < nFiles; i++) {
-		//printf("#%02d, %s, %s\n", i + 1, inFileList[i], outFileList[i]);
-
 		if ((outf[i] = init_file(&gf[i], opt_param, inFileList[i], outFileList[i], i)) == NULL) {
 			fprintf(stderr, "ERROR: init_file() failed, (%s)\n", inFileList[i]);
 			return -1;
@@ -455,7 +488,6 @@ int main(int argc, char *argv[])
 
 	for	(j = 0; j < nFiles; j++) {
 		pthread_join(tid[j], (void *)&ret);
-//		printf("Thread %d joins, return %d\n", j + 1, ret);
 		if (ret)
 			fprintf(stderr, "ERROR: Encoding #%d is failed\n", j + 1);
 	}
