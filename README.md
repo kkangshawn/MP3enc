@@ -5,11 +5,19 @@ WAV to MP3 Encoder
 
 - using lame library (installation required - http://lame.sourceforge.net/)
 - supports encoding multiple files using pthread by typing directory path
-- works on Linux, Windows 7(x86/64), MinGW system
+- works on Linux Ubuntu 15.10/Fedora 24(x86_64/armv7l), Windows 7/10(x86/64), MinGW system
 
 ##Build
 - Linux, MinGW: make
 - Windows: build by means of Microsoft Visual Studio 2015
+
+##Note for Linux system
+- Some system may require glibc-static library.
+```sh
+dnf install glibc-static
+```
+- If arch does not match,  
+ . build lame static library and install or copy the file to ./lib
 
 ##Note for Windows system
 - Microsoft Visual Studio 2015 solution/project files in **.\\msvc_solution**.
@@ -39,8 +47,7 @@ struct timespec {
 
 ##Usage
 ```sh
-MP3enc <input_filename [output_filename] | input_directory>
+MP3enc <input_filename [-o <output_filename>] | input_directory> [OPTIONS]
 ```
 ##Todo
-- _Add parameters to be passed to lame encoder settings_
 - _documentation_

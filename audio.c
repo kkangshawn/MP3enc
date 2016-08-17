@@ -1,5 +1,6 @@
-/*
+/**
  * audio.c
+ * derived from get_audio.c and parse.c of lame encoder frontend application.
  *
  *  Created on: Jul 29, 2016
  *      Author: shawn
@@ -903,11 +904,11 @@ FILE * init_outfile(const char *outFile)
 
 void close_infile(int nFile)
 {
-    int ret = 0;
-    if (audio_data[nFile].music_in != 0 && audio_data[nFile].music_in != stdin)
-        ret = fclose(audio_data[nFile].music_in);
-    if (ret != 0)
-        perror("Could not close audio input file");
+    if ((audio_data[nFile].music_in != 0)
+            && (audio_data[nFile].music_in != stdin)
+            && (fclose(audio_data[nFile].music_in) != 0)
+            )
+        fprintf(stderr, "Could not close audio input file\n");
 
     audio_data[nFile].music_in = 0;
     freePcmBuffer(&audio_data[nFile].pcm16);

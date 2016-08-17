@@ -33,7 +33,7 @@
 #include "lame.h"
 #include "audio.h"
 
-#define VERSION "0.1"
+#define VERSION "0.3"
 
 #ifndef PATH_MAX
 #ifdef MAX_PATH
@@ -49,7 +49,8 @@
 
 #define MAX_U_32_NUM    0xFFFFFFFF
 
-#define DIRENT_TYPE_FILE 8
+#define DIRENT_TYPE_DIRECTORY    4
+#define DIRENT_TYPE_FILE         8
 
 static int const WAV_ID_RIFF = 0x52494646; /* "RIFF" */
 static int const WAV_ID_WAVE = 0x57415645; /* "WAVE" */
@@ -66,6 +67,13 @@ static short const WAVE_FORMAT_IEEE_FLOAT = 0x0003;
 static short const WAVE_FORMAT_EXTENSIBLE = 0xFFFE;
 #endif
 
+enum quality_mode {
+	QL_SET = (1 << 4),
+	QL_MODE_FAST,
+	QL_MODE_STANDARD,
+	QL_MODE_BEST,
+};
+
 typedef struct th_param {
 	lame_global_flags *gf;
 	FILE *outf;
@@ -74,5 +82,10 @@ typedef struct th_param {
 	int nFile;
 } th_param_t;
 
-
+typedef struct opt_set {
+	char *szSrcfile;
+	char *szDstfile;
+	unsigned int bRecursion;
+	int nQualityLevel;
+} opt_set_t;
 #endif /* MAIN_H_ */
