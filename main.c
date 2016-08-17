@@ -273,7 +273,7 @@ static FILE * init_file(lame_t *pgf, const char *inFile, char *outFile, int nFil
 void usage()
 {
 	printf("Usage:\n"
-		"   MP3enc <input_filename [-o output_filename] | input_directory> [OPTIONS]\n"
+		"   MP3enc <input_filename [-o <output_filename>] | input_directory> [OPTIONS]\n"
 		"\nOptions:\n"
 		"\t-h\tShow help\n"
 		"\t-r\tSearch subdirectories recursively\n"
@@ -311,6 +311,12 @@ void parseopt(int argc, char *argv[], opt_set_t *param)
 					i++;
 					if (i < argc) {
 						param->szDstfile = strdup(argv[i]);
+					}
+					else {
+						fprintf(stderr, "ERROR: Output filename is missing."
+								" See below usage:\n");
+						deinit_optset(param);
+						usage();
 					}
 				}
 				else {

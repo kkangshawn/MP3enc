@@ -1,5 +1,6 @@
-/*
+/**
  * audio.c
+ * derived from get_audio.c and parse.c of lame encoder frontend application.
  *
  *  Created on: Jul 29, 2016
  *      Author: shawn
