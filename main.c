@@ -1,12 +1,13 @@
-/*
- * main.c
- *
- *  Created on: Jul 21, 2016
- *      Author: shawn
+/**
+ * @file		main.c
+ * @version		0.5
+ * @brief		MP3enc main source code
+ * @date		Aug 17, 2016
+ * @author		Siwon Kang (kkangshawn@gmail.com)
  */
 
-
 #include "main.h"
+
 
 /**
  * @brief	Check given argument has 'wav' filename extension
@@ -128,7 +129,7 @@ void get_filelist_linux(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1
 					subdir_param->szSrcfile = strdup(szTemp);
 					subdir_param->bRecursion = 1;
 
-//					printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
+					//printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
 					get_filelist_linux(inlist, outlist, nFiles, subdir_param);
 
 					deinit_optset(subdir_param);
@@ -229,7 +230,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 						subdir_param->szSrcfile = strdup(szTemp);
 						subdir_param->bRecursion = 1;
 
-//						printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
+						//printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
 						get_filelist_windows(inlist, outlist, nFiles, subdir_param);
 
 						deinit_optset(subdir_param);
@@ -277,10 +278,12 @@ FILE * init_file(lame_t *pgf, const opt_set_t *param, const char *inFile, const 
 	*pgf = lame_init();
 	if (param->nQualityLevel == QL_MODE_BEST) {
 		lame_set_preset(*pgf, INSANE);
+		lame_set_quality(*pgf, 0);
 	}
 	else if (param->nQualityLevel == QL_MODE_FAST) {
 		lame_set_force_ms(*pgf, 1);
 		lame_set_mode(*pgf, JOINT_STEREO);
+		lame_set_quality(*pgf, 7);
 	}
 	else {
         lame_set_VBR_q(*pgf, 2);
@@ -473,6 +476,8 @@ int main(int argc, char *argv[])
 
 	pthread_t *tid = malloc(sizeof(pthread_t) * nFiles);
 	th_param_t *params = malloc(sizeof(th_param_t) * nFiles);
+	if (nFiles > 1)
+		printf("%d threads created\n", nFiles);
 	for (i = 0; i < nFiles; i++) {
 		(params + i)->gf = gf[i];
 		(params + i)->outf = outf[i];
@@ -483,8 +488,6 @@ int main(int argc, char *argv[])
 		pthread_create(&tid[i], NULL, lame_encoder_loop, (void *)(params + i));
 		lame_init_bitstream(gf[i]);
 	}
-	if (nFiles > 1)
-		printf("%d threads created\n", nFiles);
 
 	for	(j = 0; j < nFiles; j++) {
 		pthread_join(tid[j], (void *)&ret);
