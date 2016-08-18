@@ -1,8 +1,9 @@
-/*
- * main.h
- *
- *  Created on: Jul 23, 2016
- *      Author: shawn
+/**
+ * @file		main.h
+ * @version		0.5
+ * @brief		MP3enc header
+ * @date		Aug 17, 2016
+ * @author		Siwon Kang (kkangshawn@gmail.com)
  */
 
 #ifndef MAIN_H_
@@ -16,7 +17,7 @@
 #include <limits.h>
 #include <assert.h>
 
-#ifndef _WIN32
+#if !defined (_WIN32)
 #include <dirent.h>
 #else
 #include <Windows.h>
@@ -33,7 +34,7 @@
 #include "lame.h"
 #include "audio.h"
 
-#define VERSION "0.3"
+#define VERSION "0.5"
 
 #ifndef PATH_MAX
 #ifdef MAX_PATH
@@ -42,31 +43,19 @@
 #define PATH_MAX 1024
 #endif
 #endif
-
 #ifndef NAME_MAX
 #define NAME_MAX 255
 #endif
 
-#define MAX_U_32_NUM    0xFFFFFFFF
-
 #define DIRENT_TYPE_DIRECTORY    4
 #define DIRENT_TYPE_FILE         8
 
-static int const WAV_ID_RIFF = 0x52494646; /* "RIFF" */
-static int const WAV_ID_WAVE = 0x57415645; /* "WAVE" */
-static int const WAV_ID_FMT = 0x666d7420; /* "fmt " */
-static int const WAV_ID_DATA = 0x64617461; /* "data" */
-
-#ifndef WAVE_FORMAT_PCM
-static short const WAVE_FORMAT_PCM = 0x0001;
-#endif
-#ifndef WAVE_FORMAT_IEEE_FLOAT
-static short const WAVE_FORMAT_IEEE_FLOAT = 0x0003;
-#endif
-#ifndef WAVE_FORMAT_EXTENSIBLE
-static short const WAVE_FORMAT_EXTENSIBLE = 0xFFFE;
-#endif
-
+/**
+ * @enum	quality_mode
+ * @brief	enum for quality level option set
+ * @see		init_file()
+ * @see		parseopt()
+ */
 enum quality_mode {
 	QL_SET = (1 << 4),
 	QL_MODE_FAST,
@@ -74,18 +63,33 @@ enum quality_mode {
 	QL_MODE_BEST,
 };
 
+/**
+ * @typedef	th_param_t
+ * @brief	thread parameter structure to be passed as a pthread argument
+ * @see		lame_encoder_loop()
+ */
 typedef struct th_param {
 	lame_global_flags *gf;
 	FILE *outf;
 	char *inPath;
 	char *outPath;
 	int nFile;
+	unsigned int bVerbose;
 } th_param_t;
 
+/**
+ * @typedef	opt_set_t
+ * @brief	option set structure given from the application arguments
+ * @see		init_file()
+ * @see		parseopt()
+ * @see		get_filelist()
+ */
 typedef struct opt_set {
 	char *szSrcfile;
 	char *szDstfile;
 	unsigned int bRecursion;
 	int nQualityLevel;
+	unsigned int bVerbose;
 } opt_set_t;
+
 #endif /* MAIN_H_ */

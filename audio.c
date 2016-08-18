@@ -1,9 +1,9 @@
 /**
- * audio.c
- * derived from get_audio.c and parse.c of lame encoder frontend application.
- *
- *  Created on: Jul 29, 2016
- *      Author: shawn
+ * @file        audio.c
+ * @version     0.5
+ * @brief       derived from get_audio.c and parse.c of lame encoder frontend application.
+ * @date        Aug 17, 2016
+ * @author      Siwon Kang (kkangshawn@gmail.com)
  */
 
 #include "audio.h"
@@ -33,7 +33,6 @@ struct PcmBuffer {
     int     skip_start;      /* number samples to ignore at the beginning */
     int     skip_end;        /* number samples to ignore at the end */
 };
-
 typedef struct PcmBuffer PcmBuffer;
 
 typedef struct RawPCMConfig
@@ -42,13 +41,11 @@ typedef struct RawPCMConfig
     int     in_signed;
     ByteOrder in_endian;
 } RawPCMConfig;
-
 RawPCMConfig global_raw_pcm =
 { /* in_bitwidth */ 16
 , /* in_signed   */ -1
 , /* in_endian   */ ByteOrderLittleEndian
 };
-
 
 typedef struct get_audio_global_data_struct {
     int     count_samples_carefully;
@@ -64,7 +61,6 @@ typedef struct get_audio_global_data_struct {
     size_t  in_id3v2_size;
     unsigned char* in_id3v2_tag;
 } get_audio_global_data;
-
 static get_audio_global_data audio_data[NAME_MAX];
 
 typedef struct ReaderConfig
@@ -187,13 +183,12 @@ takePcmBuffer(PcmBuffer * b, void *a0, void *a1, int a_n, int mm)
             memmove(b->ch[1], (char *) b->ch[1] + a_take, b->w * b->u);
         }
     }
+
     return a_n;
 }
 
 static int
-        get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int nFile);
-
-
+get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int nFile);
 
 /************************************************************************
 unpack_read_samples - read and unpack signed low-to-high byte or unsigned
@@ -272,9 +267,9 @@ unpack_read_samples(const int samples_to_read, const int bytes_per_sample,
             sample_buffer[i] = v;
         }
     }
+
     return (samples_read);
 }
-
 
 /************************************************************************
 *
@@ -287,13 +282,12 @@ unpack_read_samples(const int samples_to_read, const int bytes_per_sample,
 * into #sample_buffer[]#.  Returns the number of samples read.
 *
 ************************************************************************/
-
 static int
 read_samples_pcm(FILE * musicin, int sample_buffer[2304], int samples_to_read, int nFile)
 {
-    int     samples_read;
-    int     bytes_per_sample = audio_data[nFile].pcmbitwidth / 8;
-    int     swap_byte_order; /* byte order of input stream */
+    int samples_read;
+    int bytes_per_sample = audio_data[nFile].pcmbitwidth / 8;
+    int swap_byte_order; /* byte order of input stream */
 
     switch (audio_data[nFile].pcmbitwidth) {
     case 32:
@@ -339,7 +333,7 @@ read_samples_pcm(FILE * musicin, int sample_buffer[2304], int samples_to_read, i
 int
 get_audio(lame_t gfp, int buffer[2][1152], int nFile)
 {
-    int     used = 0, read = 0;
+    int used = 0, read = 0;
     do {
         read = get_audio_common(gfp, buffer, NULL, nFile);
         used = addPcmBuffer(&audio_data[nFile].pcm32, buffer[0], buffer[1], read);
@@ -365,14 +359,14 @@ note: either buffer or buffer16 must be allocated upon call
 static int
 get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int nFile)
 {
-    int     num_channels = lame_get_num_channels(gfp);
-    int     insamp[2 * 1152];
-    int     samples_read;
-    int     framesize;
-    int     samples_to_read;
+    int num_channels = lame_get_num_channels(gfp);
+    int insamp[2 * 1152];
+    int samples_read;
+    int framesize;
+    int samples_to_read;
     unsigned int remaining, tmp_num_samples;
-    int     i;
-    int    *p;
+    int i;
+    int *p;
 
     /*
      * NOTE: LAME can now handle arbritray size input data packets,
@@ -406,7 +400,6 @@ get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int n
                change samples_to_read to the wrong value in this case */
             samples_to_read = remaining;
     }
-
 
     samples_read =
         read_samples_pcm(audio_data[nFile].music_in, insamp, num_channels * samples_to_read, nFile);
@@ -460,7 +453,7 @@ get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int n
 static void
 setSkipStartAndEnd(lame_t gfp, int enc_delay, int enc_padding, int nFile)
 {
-    int     skip_start = 0, skip_end = 0;
+    int skip_start = 0, skip_end = 0;
 
     switch (reader_config[nFile].input_format) {
     case sf_mp123:
@@ -507,7 +500,6 @@ setSkipStartAndEnd(lame_t gfp, int enc_delay, int enc_padding, int nFile)
     audio_data[nFile]. pcm16.skip_end = audio_data[nFile].pcm32.skip_end = skip_end;
 }
 
-
 static int
 read_16_bits_low_high(FILE * fp)
 {
@@ -519,7 +511,6 @@ read_16_bits_low_high(FILE * fp)
         return (high << 8) | low;
     }
 }
-
 
 static int
 read_32_bits_low_high(FILE * fp)
@@ -579,9 +570,9 @@ static int
 fskip(FILE * fp, long offset, int whence)
 {
 #ifndef PIPE_BUF
-    char    buffer[4096];
+    char buffer[4096];
 #else
-    char    buffer[PIPE_BUF];
+    char buffer[PIPE_BUF];
 #endif
 
 /* S_ISFIFO macro is defined on newer Linuxes */
@@ -649,19 +640,20 @@ static off_t
 lame_get_file_size(FILE * fp)
 {
     struct stat sb;
-    int     fd = fileno(fp);
+    int fd = fileno(fp);
 
     if (0 == fstat(fd, &sb))
         return sb.st_size;
+
     return (off_t) - 1;
 }
 
 static long
 make_even_number_of_bytes_in_length(long x)
 {
-    if ((x & 0x01) != 0) {
+    if ((x & 0x01) != 0)
         return x + 1;
-    }
+
     return x;
 }
 
@@ -761,7 +753,6 @@ parse_wave_header(lame_global_flags * gfp, FILE * sf, int nFile)
             return 0;   /* oh no! non-supported format  */
         }
 
-
         /* make sure the header is sane */
         if (-1 == lame_set_num_channels(gfp, channels)) {
             if (ui_config[nFile].silent < 10) {
@@ -779,16 +770,17 @@ parse_wave_header(lame_global_flags * gfp, FILE * sf, int nFile)
         audio_data[nFile]. pcm_is_unsigned_8bit = 1;
         audio_data[nFile]. pcm_is_ieee_float = (format_tag == WAVE_FORMAT_IEEE_FLOAT ? 1 : 0);
         (void) lame_set_num_samples(gfp, data_length / (channels * ((bits_per_sample + 7) / 8)));
+
         return 1;
     }
+
     return -1;
 }
 
 static int
 parse_file_header(lame_global_flags * gfp, FILE * sf, int nFile)
 {
-
-    int     type = read_32_bits_high_low(sf);
+    int type = read_32_bits_high_low(sf);
     /*
        DEBUGF(
        "First word of input stream: %08x '%4.4s'\n", type, (char*) &type);
@@ -814,14 +806,14 @@ parse_file_header(lame_global_flags * gfp, FILE * sf, int nFile)
     else {
         printf("Warning: unsupported audio format\n");
     }
+
     return sf_unknown;
 }
-
 
 static FILE *
 open_wave_file(lame_t gfp, char const *inPath, int nFile)
 {
-    FILE   *musicin;
+    FILE *musicin;
 
     /* set the defaults from info incase we cannot determine them from file */
     lame_set_num_samples(gfp, MAX_U_32_NUM);
@@ -859,14 +851,15 @@ open_wave_file(lame_t gfp, char const *inPath, int nFile)
             (void) lame_set_num_samples(gfp, fsize);
         }
     }
+
     return musicin;
 }
 
 int
-init_infile(lame_t gfp, char const *inPath, int nFile)
+init_infile(lame_t gfp, char const *inPath, const int nFile)
 {
-    int     enc_delay = 0, enc_padding = 0;
-    /* open the input file */
+    int enc_delay = 0, enc_padding = 0;
+
     audio_data[nFile]. count_samples_carefully = 0;
     audio_data[nFile]. num_samples_read = 0;
     audio_data[nFile]. pcmbitwidth = global_raw_pcm.in_bitwidth;
@@ -890,6 +883,7 @@ init_infile(lame_t gfp, char const *inPath, int nFile)
             lame_set_num_samples(gfp, n > discard ? n - discard : 0);
         }
     }
+
     return (audio_data[nFile].music_in != NULL) ? 1 : -1;
 }
 
@@ -900,7 +894,6 @@ FILE * init_outfile(const char *outFile)
 
     return outf;
 }
-
 
 void close_infile(int nFile)
 {
@@ -921,12 +914,11 @@ void close_infile(int nFile)
     }
 }
 
-
 static int
 write_xing_frame(lame_global_flags * gf, FILE * outf, size_t offset)
 {
     unsigned char mp3buffer[LAME_MAXMP3BUFFER];
-    size_t  imp3, owrite;
+    size_t imp3, owrite;
 
     imp3 = lame_get_lametag_frame(gf, mp3buffer, sizeof(mp3buffer));
     if (imp3 <= 0) {
@@ -951,12 +943,11 @@ write_xing_frame(lame_global_flags * gf, FILE * outf, size_t offset)
     return imp3;
 }
 
-
 static int
 write_id3v1_tag(lame_t gf, FILE * outf)
 {
     unsigned char mp3buffer[128];
-    int     imp3, owrite;
+    int imp3, owrite;
 
     imp3 = lame_get_id3v1_tag(gf, mp3buffer, sizeof(mp3buffer));
     if (imp3 <= 0) {
@@ -974,6 +965,7 @@ write_id3v1_tag(lame_t gf, FILE * outf)
     }
     return 0;
 }
+
 size_t
 sizeOfOldTag(lame_t gf, int nFile)
 {
@@ -988,15 +980,13 @@ getOldTag(lame_t gf, int nFile)
     return audio_data[nFile].in_id3v2_tag;
 }
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
 void *
 lame_encoder_loop(void *data)
 {
     unsigned char mp3buffer[LAME_MAXMP3BUFFER];
-    int     Buffer[2][1152];
-    int     iread, imp3, owrite;
-    size_t  id3v2_size;
+    int Buffer[2][1152];
+    int iread, imp3, owrite;
+    size_t id3v2_size;
 
     th_param_t *param = (th_param_t *)data;
     lame_global_flags *gf = param->gf;
@@ -1033,6 +1023,53 @@ lame_encoder_loop(void *data)
         fflush(outf);
     }
 
+    /* print encoding information */
+    printf(" %2d: %-25s -> %-25s\n", nFile + 1, inPath, outPath);
+    if (param->bVerbose)
+    {
+        printf("    Encoding as %g kHz ", 1.e-3 * lame_get_out_samplerate(gf));
+        static const char *mode_names[2][4] = {
+            {"stereo", "j-stereo", "dual-ch", "single-ch"},
+            {"stereo", "force-ms", "dual-ch", "single-ch"}
+        };
+        switch (lame_get_VBR(gf)) {
+        case vbr_rh:
+            printf("%s MPEG-%u%s Layer III VBR(q=%g) qval=%i\n",
+                           mode_names[lame_get_force_ms(gf)][lame_get_mode(gf)],
+                           2 - lame_get_version(gf),
+                           lame_get_out_samplerate(gf) < 16000 ? ".5" : "",
+                           lame_get_VBR_quality(gf),
+                           lame_get_quality(gf));
+            break;
+        case vbr_mt:
+        case vbr_mtrh:
+            printf("%s MPEG-%u%s Layer III VBR(q=%g)\n",
+                           mode_names[lame_get_force_ms(gf)][lame_get_mode(gf)],
+                           2 - lame_get_version(gf),
+                           lame_get_out_samplerate(gf) < 16000 ? ".5" : "",
+                           lame_get_VBR_quality(gf));
+            break;
+        case vbr_abr:
+            printf("%s MPEG-%u%s Layer III (%gx) average %d kbps qval=%i\n",
+                           mode_names[lame_get_force_ms(gf)][lame_get_mode(gf)],
+                           2 - lame_get_version(gf),
+                           lame_get_out_samplerate(gf) < 16000 ? ".5" : "",
+                           0.1 * (int) (10. * lame_get_compression_ratio(gf) + 0.5),
+                           lame_get_VBR_mean_bitrate_kbps(gf),
+                           lame_get_quality(gf));
+            break;
+        default:
+            printf("%s MPEG-%u%s Layer III (%gx) %3d kbps qval=%i\n",
+                           mode_names[lame_get_force_ms(gf)][lame_get_mode(gf)],
+                           2 - lame_get_version(gf),
+                           lame_get_out_samplerate(gf) < 16000 ? ".5" : "",
+                           0.1 * (int) (10. * lame_get_compression_ratio(gf) + 0.5),
+                           lame_get_brate(gf),
+                           lame_get_quality(gf));
+            break;
+        }
+    }
+
     /* encode until we hit eof */
     do {
         /* read in 'iread' samples */
@@ -1063,10 +1100,7 @@ lame_encoder_loop(void *data)
         }
     } while (iread > 0);
 
-//    if (nogap)
-//        imp3 = lame_encode_flush_nogap(gf, mp3buffer, sizeof(mp3buffer)); /* may return one more mp3 frame */
-//    else
-        imp3 = lame_encode_flush(gf, mp3buffer, sizeof(mp3buffer)); /* may return one more mp3 frame */
+    imp3 = lame_encode_flush(gf, mp3buffer, sizeof(mp3buffer)); /* may return one more mp3 frame */
 
     if (imp3 < 0) {
         if (imp3 == -1)
@@ -1098,7 +1132,7 @@ lame_encoder_loop(void *data)
         fflush(outf);
     }
 
-    printf("%2d: %-20s -> %-20s ... Done\n", nFile + 1, inPath, outPath);
+    printf(" %2d: Done\n", nFile + 1);
 
     return (void *)0;
 }

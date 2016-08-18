@@ -51,6 +51,7 @@ opt_set_t * init_optset()
 	optset->szDstfile = NULL;
 	optset->bRecursion = 0;
 	optset->nQualityLevel = 0;
+	optset->bVerbose = 0;
 
 	return optset;
 }
@@ -71,6 +72,7 @@ void deinit_optset(opt_set_t *param)
 		}
 		param->bRecursion = 0;
 		param->nQualityLevel = 0;
+		param->bVerbose = 0;
 
 		free(param);
 		param = NULL;
@@ -271,7 +273,7 @@ void get_filelist(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX + 1], int
  * @param [in]	nFile	The ID number of the file to be used for get_audio_global_data
  * @return	Pointer of FILE structure
  */
-FILE * init_file(lame_t *pgf, const opt_set_t *param, const char *inFile, const char *outFile, int nFile)
+FILE * init_file(lame_t *pgf, const opt_set_t *param, const char *inFile, const char *outFile, const int nFile)
 {
 	FILE *outf;
 
@@ -330,6 +332,7 @@ void usage()
 		"\t    fast\t   fast encoding with small file size\n"
 		"\t    standard\t   standard quality - default\n"
 		"\t    best\t   best quality\n"
+		"\t-v\t\t Show verbose encoding details\n"
 
 		"\nExample:\n"
 		"   MP3enc input.wav -o output.mp3\n"
@@ -339,7 +342,7 @@ void usage()
 #else
 		"\\"
 #endif
-		" -r -q fast\n"
+		" -r -q fast -v\n"
 		);
 	exit(0);
 }
@@ -418,6 +421,9 @@ void parseopt(int argc, char *argv[], opt_set_t *param)
 					exit(0);
 				}
 			}
+			else if (!strcmp(argv[i], "-v")) {
+				param->bVerbose = 1;
+			}
 			else {
 				/* Any arguments except for defined options are regarded as src file */
 				if (!param->szSrcfile)
@@ -484,6 +490,7 @@ int main(int argc, char *argv[])
 		(params + i)->inPath = inFileList[i];
 		(params + i)->outPath = outFileList[i];
 		(params + i)->nFile = i;
+		(params + i)->bVerbose = opt_param->bVerbose;
 
 		pthread_create(&tid[i], NULL, lame_encoder_loop, (void *)(params + i));
 		lame_init_bitstream(gf[i]);
