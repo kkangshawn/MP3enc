@@ -50,4 +50,3 @@ struct timespec {
 MP3enc <input_filename [-o <output_filename>] | input_directory> [OPTIONS]
 ```
 ##Todo
-- _documentation_

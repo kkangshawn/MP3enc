@@ -1,0 +1,5 @@
+<map id="main.h" name="main.h">
+<area shape="rect" id="node2" href="$audio_8h.html" title="header for audio.c " alt="" coords="5,80,69,107"/>
+<area shape="rect" id="node4" href="$main_8c.html" title="MP3enc main source code. " alt="" coords="93,80,155,107"/>
+<area shape="rect" id="node3" href="$audio_8c.html" title="derived from get_audio.c and parse.c of lame encoder frontend application. " alt="" coords="5,155,69,181"/>
+</map>

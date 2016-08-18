@@ -53,6 +53,10 @@
 /**
  * @enum	quality_mode
  * @brief	enum for quality level option set
+ * @param	QL_SET				Setting bit to check duplicated option
+ * @param	QL_MODE_FAST		Fast encoding mode
+ * @param	QL_MODE_STANDARD	Standard encoding mode, default
+ * @param	QL_MODE_BEST		Best encoding mode
  * @see		init_file()
  * @see		parseopt()
  */
@@ -66,6 +70,11 @@ enum quality_mode {
 /**
  * @typedef	th_param_t
  * @brief	thread parameter structure to be passed as a pthread argument
+ * @param	gf			Global flags for lame encoder library
+ * @param	inPath		Input file path
+ * @param	outPath		Output file path
+ * @param	nFile		Thread index number
+ * @param	bVerbose	Verbose option flag to be used in encoding loop
  * @see		lame_encoder_loop()
  */
 typedef struct th_param {
@@ -80,6 +89,11 @@ typedef struct th_param {
 /**
  * @typedef	opt_set_t
  * @brief	option set structure given from the application arguments
+ * @param	szSrcfile		Name of input file or directory
+ * @param	szDstfile		Name of output file
+ * @param	bRecursion		Option flag for recursive subdirectory search
+ * @param	nQualityLevel	Quality level
+ * @param	bVerbose		Verbose option flag to be used in encoding loop
  * @see		init_file()
  * @see		parseopt()
  * @see		get_filelist()
