@@ -7,11 +7,11 @@ WAV to MP3 Encoder
 - supports encoding multiple files using pthread by typing directory path
 - works on Linux Ubuntu 15.10/Fedora 24(x86_64/armv7l), Windows 7/10(x86/64), MinGW system
 
-##Build
+## Build
 - Linux, MinGW: make
 - Windows: build by means of Microsoft Visual Studio 2015
 
-##Note for Linux system
+## Note for Linux system
 - Some system may require glibc-static library.
 ```sh
 dnf install glibc-static
@@ -19,7 +19,7 @@ dnf install glibc-static
 - If arch does not match,  
  . build lame static library and install or copy the file to ./lib
 
-##Note for Windows system
+## Note for Windows system
 - Microsoft Visual Studio 2015 solution/project files in **.\\msvc_solution**.
 - When you build libmp3lame library,  
  . as recommended in **README**, use nmake instead of Visual Studio project.  
@@ -45,8 +45,8 @@ struct timespec {
 ```
  
 
-##Usage
+## Usage
 ```sh
 MP3enc <input_filename [-o <output_filename>] | input_directory> [OPTIONS]
 ```
-##Todo
+## Todo
