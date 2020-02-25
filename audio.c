@@ -1,8 +1,8 @@
 /**
  * @file        audio.c
- * @version     0.5
+ * @version     0.6
  * @brief       derived from get_audio.c and parse.c of lame encoder frontend application.
- * @date        Aug 17, 2016
+ * @date        Feb 25, 2020
  * @author      Siwon Kang (kkangshawn@gmail.com)
  */
 
@@ -188,7 +188,7 @@ takePcmBuffer(PcmBuffer * b, void *a0, void *a1, int a_n, int mm)
 }
 
 static int
-get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int nFile);
+get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int num_file);
 
 /************************************************************************
 unpack_read_samples - read and unpack signed low-to-high byte or unsigned
@@ -204,7 +204,7 @@ returns: number of samples read
 */
 static int
 unpack_read_samples(const int samples_to_read, const int bytes_per_sample,
-                    const int swap_order, int *sample_buffer, FILE * pcm_in, int nFile)
+                    const int swap_order, int *sample_buffer, FILE * pcm_in, int num_file)
 {
     size_t  samples_read;
     int     i;
@@ -244,7 +244,7 @@ unpack_read_samples(const int samples_to_read, const int bytes_per_sample,
                                                                                              32);
     }
 #undef GA_URS_IFLOOP
-    if (audio_data[nFile].pcm_is_ieee_float) {
+    if (audio_data[num_file].pcm_is_ieee_float) {
         float const m_max = INT_MAX;
         float const m_min = -(float) INT_MIN;
         float *x = (float *) sample_buffer;
@@ -283,13 +283,13 @@ unpack_read_samples(const int samples_to_read, const int bytes_per_sample,
 *
 ************************************************************************/
 static int
-read_samples_pcm(FILE * musicin, int sample_buffer[2304], int samples_to_read, int nFile)
+read_samples_pcm(FILE * musicin, int sample_buffer[2304], int samples_to_read, int num_file)
 {
     int samples_read;
-    int bytes_per_sample = audio_data[nFile].pcmbitwidth / 8;
+    int bytes_per_sample = audio_data[num_file].pcmbitwidth / 8;
     int swap_byte_order; /* byte order of input stream */
 
-    switch (audio_data[nFile].pcmbitwidth) {
+    switch (audio_data[num_file].pcmbitwidth) {
     case 32:
     case 24:
     case 16:
@@ -298,13 +298,13 @@ read_samples_pcm(FILE * musicin, int sample_buffer[2304], int samples_to_read, i
             return -1;
         }
         swap_byte_order = (global_raw_pcm.in_endian != ByteOrderLittleEndian) ? 1 : 0;
-        if (audio_data[nFile].pcmswapbytes) {
+        if (audio_data[num_file].pcmswapbytes) {
             swap_byte_order = !swap_byte_order;
         }
         break;
 
     case 8:
-        swap_byte_order = audio_data[nFile].pcm_is_unsigned_8bit;
+        swap_byte_order = audio_data[num_file].pcm_is_unsigned_8bit;
         break;
 
     default:
@@ -312,7 +312,7 @@ read_samples_pcm(FILE * musicin, int sample_buffer[2304], int samples_to_read, i
         return -1;
     }
     samples_read = unpack_read_samples(samples_to_read, bytes_per_sample, swap_byte_order,
-                                       sample_buffer, musicin, nFile);
+                                       sample_buffer, musicin, num_file);
     if (ferror(musicin)) {
         printf("Error reading input file\n");
         return -1;
@@ -331,20 +331,20 @@ read_samples_pcm(FILE * musicin, int sample_buffer[2304], int samples_to_read, i
 *
 ************************************************************************/
 int
-get_audio(lame_t gfp, int buffer[2][1152], int nFile)
+get_audio(lame_t gfp, int buffer[2][1152], int num_file)
 {
     int used = 0, read = 0;
     do {
-        read = get_audio_common(gfp, buffer, NULL, nFile);
-        used = addPcmBuffer(&audio_data[nFile].pcm32, buffer[0], buffer[1], read);
+        read = get_audio_common(gfp, buffer, NULL, num_file);
+        used = addPcmBuffer(&audio_data[num_file].pcm32, buffer[0], buffer[1], read);
     } while (used <= 0 && read > 0);
     if (read < 0) {
         return read;
     }
-    if (reader_config[nFile].swap_channel == 0)
-        return takePcmBuffer(&audio_data[nFile].pcm32, buffer[0], buffer[1], used, 1152);
+    if (reader_config[num_file].swap_channel == 0)
+        return takePcmBuffer(&audio_data[num_file].pcm32, buffer[0], buffer[1], used, 1152);
     else
-        return takePcmBuffer(&audio_data[nFile].pcm32, buffer[1], buffer[0], used, 1152);
+        return takePcmBuffer(&audio_data[num_file].pcm32, buffer[1], buffer[0], used, 1152);
 }
 
 /************************************************************************
@@ -357,7 +357,7 @@ returns: samples read
 note: either buffer or buffer16 must be allocated upon call
 */
 static int
-get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int nFile)
+get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int num_file)
 {
     int num_channels = lame_get_num_channels(gfp);
     int insamp[2 * 1152];
@@ -386,9 +386,9 @@ get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int n
      * files which have id3 or other tags at the end.  Note that if you
      * are using LIBSNDFILE, this is not necessary
      */
-    if (audio_data[nFile].count_samples_carefully) {
-        if (audio_data[nFile].num_samples_read < tmp_num_samples) {
-            remaining = tmp_num_samples - audio_data[nFile].num_samples_read;
+    if (audio_data[num_file].count_samples_carefully) {
+        if (audio_data[num_file].num_samples_read < tmp_num_samples) {
+            remaining = tmp_num_samples - audio_data[num_file].num_samples_read;
         }
         else {
             remaining = 0;
@@ -402,7 +402,7 @@ get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int n
     }
 
     samples_read =
-        read_samples_pcm(audio_data[nFile].music_in, insamp, num_channels * samples_to_read, nFile);
+        read_samples_pcm(audio_data[num_file].music_in, insamp, num_channels * samples_to_read, num_file);
     if (samples_read < 0) {
         return samples_read;
     }
@@ -444,18 +444,18 @@ get_audio_common(lame_t gfp, int buffer[2][1152], short buffer16[2][1152], int n
     /* if num_samples = MAX_U_32_NUM, then it is considered infinitely long.
        Don't count the samples */
     if (tmp_num_samples != MAX_U_32_NUM)
-        audio_data[nFile]. num_samples_read += samples_read;
+        audio_data[num_file]. num_samples_read += samples_read;
 
     return samples_read;
 }
 
 
 static void
-setSkipStartAndEnd(lame_t gfp, int enc_delay, int enc_padding, int nFile)
+setSkipStartAndEnd(lame_t gfp, int enc_delay, int enc_padding, int num_file)
 {
     int skip_start = 0, skip_end = 0;
 
-    switch (reader_config[nFile].input_format) {
+    switch (reader_config[num_file].input_format) {
     case sf_mp123:
         break;
 
@@ -496,8 +496,8 @@ setSkipStartAndEnd(lame_t gfp, int enc_delay, int enc_padding, int nFile)
     }
     skip_start = skip_start < 0 ? 0 : skip_start;
     skip_end = skip_end < 0 ? 0 : skip_end;
-    audio_data[nFile]. pcm16.skip_start = audio_data[nFile].pcm32.skip_start = skip_start;
-    audio_data[nFile]. pcm16.skip_end = audio_data[nFile].pcm32.skip_end = skip_end;
+    audio_data[num_file]. pcm16.skip_start = audio_data[num_file].pcm32.skip_start = skip_start;
+    audio_data[num_file]. pcm16.skip_end = audio_data[num_file].pcm32.skip_end = skip_end;
 }
 
 static int
@@ -667,7 +667,7 @@ make_even_number_of_bytes_in_length(long x)
  *****************************************************************************/
 
 static int
-parse_wave_header(lame_global_flags * gfp, FILE * sf, int nFile)
+parse_wave_header(lame_global_flags * gfp, FILE * sf, int num_file)
 {
     int     format_tag = 0;
     int     channels = 0;
@@ -747,7 +747,7 @@ parse_wave_header(lame_global_flags * gfp, FILE * sf, int nFile)
     }
     if (is_wav) {
         if (format_tag != WAVE_FORMAT_PCM && format_tag != WAVE_FORMAT_IEEE_FLOAT) {
-            if (ui_config[nFile].silent < 10) {
+            if (ui_config[num_file].silent < 10) {
                 printf("Unsupported data format: 0x%04X\n", format_tag);
             }
             return 0;   /* oh no! non-supported format  */
@@ -755,20 +755,20 @@ parse_wave_header(lame_global_flags * gfp, FILE * sf, int nFile)
 
         /* make sure the header is sane */
         if (-1 == lame_set_num_channels(gfp, channels)) {
-            if (ui_config[nFile].silent < 10) {
+            if (ui_config[num_file].silent < 10) {
                 printf("Unsupported number of channels: %u\n", channels);
             }
             return 0;
         }
-        if (reader_config[nFile].input_samplerate == 0) {
+        if (reader_config[num_file].input_samplerate == 0) {
             (void) lame_set_in_samplerate(gfp, samples_per_sec);
         }
         else {
-            (void) lame_set_in_samplerate(gfp, reader_config[nFile].input_samplerate);
+            (void) lame_set_in_samplerate(gfp, reader_config[num_file].input_samplerate);
         }
-        audio_data[nFile]. pcmbitwidth = bits_per_sample;
-        audio_data[nFile]. pcm_is_unsigned_8bit = 1;
-        audio_data[nFile]. pcm_is_ieee_float = (format_tag == WAVE_FORMAT_IEEE_FLOAT ? 1 : 0);
+        audio_data[num_file]. pcmbitwidth = bits_per_sample;
+        audio_data[num_file]. pcm_is_unsigned_8bit = 1;
+        audio_data[num_file]. pcm_is_ieee_float = (format_tag == WAVE_FORMAT_IEEE_FLOAT ? 1 : 0);
         (void) lame_set_num_samples(gfp, data_length / (channels * ((bits_per_sample + 7) / 8)));
 
         return 1;
@@ -778,15 +778,15 @@ parse_wave_header(lame_global_flags * gfp, FILE * sf, int nFile)
 }
 
 static int
-parse_file_header(lame_global_flags * gfp, FILE * sf, int nFile)
+parse_file_header(lame_global_flags * gfp, FILE * sf, int num_file)
 {
     int type = read_32_bits_high_low(sf);
     /*
        DEBUGF(
        "First word of input stream: %08x '%4.4s'\n", type, (char*) &type);
      */
-    audio_data[nFile]. count_samples_carefully = 0;
-    audio_data[nFile]. pcm_is_unsigned_8bit = global_raw_pcm.in_signed == 1 ? 0 : 1;
+    audio_data[num_file]. count_samples_carefully = 0;
+    audio_data[num_file]. pcm_is_unsigned_8bit = global_raw_pcm.in_signed == 1 ? 0 : 1;
     /*global_reader.input_format = sf_raw; commented out, because it is better to fail
        here as to encode some hundreds of input files not supported by LAME
        If you know you have RAW PCM data, use the -r switch
@@ -794,9 +794,9 @@ parse_file_header(lame_global_flags * gfp, FILE * sf, int nFile)
 
     if (type == WAV_ID_RIFF) {
         /* It's probably a WAV file */
-        int const ret = parse_wave_header(gfp, sf, nFile);
+        int const ret = parse_wave_header(gfp, sf, num_file);
         if (ret > 0) {
-            audio_data[nFile]. count_samples_carefully = 1;
+            audio_data[num_file]. count_samples_carefully = 1;
             return sf_wave;
         }
         if (ret < 0) {
@@ -811,35 +811,35 @@ parse_file_header(lame_global_flags * gfp, FILE * sf, int nFile)
 }
 
 static FILE *
-open_wave_file(lame_t gfp, char const *inPath, int nFile)
+open_wave_file(lame_t gfp, char const *in_path, int num_file)
 {
     FILE *musicin;
 
     /* set the defaults from info incase we cannot determine them from file */
     lame_set_num_samples(gfp, MAX_U_32_NUM);
 
-    if ((musicin = fopen(inPath, "rb")) == NULL) {
-        if (ui_config[nFile].silent < 10) {
-            printf("Could not find \"%s\".\n", inPath);
+    if ((musicin = fopen(in_path, "rb")) == NULL) {
+        if (ui_config[num_file].silent < 10) {
+            printf("Could not find \"%s\".\n", in_path);
         }
         exit(1);
     }
 
-    if (reader_config[nFile].input_format == sf_raw) {
+    if (reader_config[num_file].input_format == sf_raw) {
         /* assume raw PCM */
-        if (ui_config[nFile].silent < 9) {
+        if (ui_config[num_file].silent < 9) {
             printf("Assuming raw pcm input file");
-            if (reader_config[nFile].swapbytes)
+            if (reader_config[num_file].swapbytes)
                 printf(" : Forcing byte-swapping\n");
             else
                 printf("\n");
         }
-        audio_data[nFile]. pcmswapbytes = reader_config[nFile].swapbytes;
+        audio_data[num_file]. pcmswapbytes = reader_config[num_file].swapbytes;
     }
     else {
-        reader_config[nFile].input_format = parse_file_header(gfp, musicin, nFile);
+        reader_config[num_file].input_format = parse_file_header(gfp, musicin, num_file);
     }
-    if (reader_config[nFile].input_format == sf_unknown) {
+    if (reader_config[num_file].input_format == sf_unknown) {
         return NULL;
     }
 
@@ -856,61 +856,63 @@ open_wave_file(lame_t gfp, char const *inPath, int nFile)
 }
 
 int
-init_infile(lame_t gfp, char const *inPath, const int nFile)
+init_infile(lame_t gfp, char const *in_path, const int num_file)
 {
     int enc_delay = 0, enc_padding = 0;
 
-    audio_data[nFile]. count_samples_carefully = 0;
-    audio_data[nFile]. num_samples_read = 0;
-    audio_data[nFile]. pcmbitwidth = global_raw_pcm.in_bitwidth;
-    audio_data[nFile]. pcmswapbytes = reader_config[nFile].swapbytes;
-    audio_data[nFile]. pcm_is_unsigned_8bit = global_raw_pcm.in_signed == 1 ? 0 : 1;
-    audio_data[nFile]. pcm_is_ieee_float = 0;
-    audio_data[nFile]. hip = 0;
-    audio_data[nFile]. music_in = 0;
-    audio_data[nFile]. in_id3v2_size = 0;
-    audio_data[nFile]. in_id3v2_tag = 0;
+    audio_data[num_file]. count_samples_carefully = 0;
+    audio_data[num_file]. num_samples_read = 0;
+    audio_data[num_file]. pcmbitwidth = global_raw_pcm.in_bitwidth;
+    audio_data[num_file]. pcmswapbytes = reader_config[num_file].swapbytes;
+    audio_data[num_file]. pcm_is_unsigned_8bit = global_raw_pcm.in_signed == 1 ? 0 : 1;
+    audio_data[num_file]. pcm_is_ieee_float = 0;
+    audio_data[num_file]. hip = 0;
+    audio_data[num_file]. music_in = 0;
+    audio_data[num_file]. in_id3v2_size = 0;
+    audio_data[num_file]. in_id3v2_tag = 0;
 
-    audio_data[nFile]. music_in = open_wave_file(gfp, inPath, nFile);
+    audio_data[num_file]. music_in = open_wave_file(gfp, in_path, num_file);
 
-    initPcmBuffer(&audio_data[nFile].pcm32, sizeof(int));
-    initPcmBuffer(&audio_data[nFile].pcm16, sizeof(short));
-    setSkipStartAndEnd(gfp, enc_delay, enc_padding, nFile);
+    initPcmBuffer(&audio_data[num_file].pcm32, sizeof(int));
+    initPcmBuffer(&audio_data[num_file].pcm16, sizeof(short));
+    setSkipStartAndEnd(gfp, enc_delay, enc_padding, num_file);
     {
         unsigned long n = lame_get_num_samples(gfp);
         if (n != MAX_U_32_NUM) {
-            unsigned long const discard = audio_data[nFile].pcm32.skip_start + audio_data[nFile].pcm32.skip_end;
+            unsigned long const discard = audio_data[num_file].pcm32.skip_start + audio_data[num_file].pcm32.skip_end;
             lame_set_num_samples(gfp, n > discard ? n - discard : 0);
         }
     }
 
-    return (audio_data[nFile].music_in != NULL) ? 1 : -1;
+    return (audio_data[num_file].music_in != NULL) ? 1 : -1;
 }
 
-FILE * init_outfile(const char *outFile)
+FILE *
+init_outfile(const char *out_path)
 {
     FILE *outf;
-    outf = fopen(outFile, "w+b");
+    outf = fopen(out_path, "w+b");
 
     return outf;
 }
 
-void close_infile(int nFile)
+void
+close_infile(int num_file)
 {
-    if ((audio_data[nFile].music_in != 0)
-            && (audio_data[nFile].music_in != stdin)
-            && (fclose(audio_data[nFile].music_in) != 0)
+    if ((audio_data[num_file].music_in != 0)
+            && (audio_data[num_file].music_in != stdin)
+            && (fclose(audio_data[num_file].music_in) != 0)
             )
         fprintf(stderr, "Could not close audio input file\n");
 
-    audio_data[nFile].music_in = 0;
-    freePcmBuffer(&audio_data[nFile].pcm16);
-    freePcmBuffer(&audio_data[nFile].pcm32);
+    audio_data[num_file].music_in = 0;
+    freePcmBuffer(&audio_data[num_file].pcm16);
+    freePcmBuffer(&audio_data[num_file].pcm32);
 
-    if (audio_data[nFile].in_id3v2_tag) {
-        free(audio_data[nFile].in_id3v2_tag);
-        audio_data[nFile].in_id3v2_tag = 0;
-        audio_data[nFile].in_id3v2_size = 0;
+    if (audio_data[num_file].in_id3v2_tag) {
+        free(audio_data[num_file].in_id3v2_tag);
+        audio_data[num_file].in_id3v2_tag = 0;
+        audio_data[num_file].in_id3v2_size = 0;
     }
 }
 
@@ -967,33 +969,33 @@ write_id3v1_tag(lame_t gf, FILE * outf)
 }
 
 size_t
-sizeOfOldTag(lame_t gf, int nFile)
+sizeOfOldTag(lame_t gf, int num_file)
 {
     (void) gf;
-    return audio_data[nFile].in_id3v2_size;
+    return audio_data[num_file].in_id3v2_size;
 }
 
 unsigned char*
-getOldTag(lame_t gf, int nFile)
+getOldTag(lame_t gf, int num_file)
 {
     (void) gf;
-    return audio_data[nFile].in_id3v2_tag;
+    return audio_data[num_file].in_id3v2_tag;
 }
 
 void *
 lame_encoder_loop(void *data)
 {
     unsigned char mp3buffer[LAME_MAXMP3BUFFER];
-    int Buffer[2][1152];
+    int buf[2][1152];
     int iread, imp3, owrite;
     size_t id3v2_size;
 
     th_param_t *param = (th_param_t *)data;
     lame_global_flags *gf = param->gf;
     FILE *outf = param->outf;
-    char *inPath = param->inPath;
-    char *outPath = param->outPath;
-    int nFile = param->nFile;
+    char *inPath = param->in_path;
+    char *outPath = param->out_path;
+    int num_file = param->idx_file;
 
     id3v2_size = lame_get_id3v2_tag(gf, 0, 0);
     if (id3v2_size > 0) {
@@ -1009,8 +1011,8 @@ lame_encoder_loop(void *data)
         }
     }
     else {
-        unsigned char* id3v2tag = getOldTag(gf, nFile);
-        id3v2_size = sizeOfOldTag(gf, nFile);
+        unsigned char* id3v2tag = getOldTag(gf, num_file);
+        id3v2_size = sizeOfOldTag(gf, num_file);
         if ( id3v2_size > 0 ) {
             size_t owrite = fwrite(id3v2tag, 1, id3v2_size, outf);
             if (owrite != id3v2_size) {
@@ -1019,13 +1021,13 @@ lame_encoder_loop(void *data)
             }
         }
     }
-    if (writer_config[nFile].flush_write == 1) {
+    if (writer_config[num_file].flush_write == 1) {
         fflush(outf);
     }
 
     /* print encoding information */
-    printf(" %2d: %-25s -> %-25s\n", nFile + 1, inPath, outPath);
-    if (param->bVerbose)
+    printf(" %2d: %-25s -> %-25s\n", num_file + 1, inPath, outPath);
+    if (param->verbose)
     {
         printf("    Encoding as %g kHz ", 1.e-3 * lame_get_out_samplerate(gf));
         static const char *mode_names[2][4] = {
@@ -1073,12 +1075,12 @@ lame_encoder_loop(void *data)
     /* encode until we hit eof */
     do {
         /* read in 'iread' samples */
-        iread = get_audio(gf, Buffer, nFile);
+        iread = get_audio(gf, buf, num_file);
 
         if (iread >= 0) {
 
             /* encode */
-            imp3 = lame_encode_buffer_int(gf, Buffer[0], Buffer[1], iread,
+            imp3 = lame_encode_buffer_int(gf, buf[0], buf[1], iread,
                                           mp3buffer, sizeof(mp3buffer));
 
             /* was our output buffer big enough? */
@@ -1095,7 +1097,7 @@ lame_encoder_loop(void *data)
                 return (void *)1;
             }
         }
-        if (writer_config[nFile].flush_write == 1) {
+        if (writer_config[num_file].flush_write == 1) {
             fflush(outf);
         }
     } while (iread > 0);
@@ -1116,11 +1118,11 @@ lame_encoder_loop(void *data)
         printf("Error writing mp3 output \n");
         return (void *)1;
     }
-    if (writer_config[nFile].flush_write == 1) {
+    if (writer_config[num_file].flush_write == 1) {
         fflush(outf);
     }
     imp3 = write_id3v1_tag(gf, outf);
-    if (writer_config[nFile].flush_write == 1) {
+    if (writer_config[num_file].flush_write == 1) {
         fflush(outf);
     }
     if (imp3) {
@@ -1128,11 +1130,11 @@ lame_encoder_loop(void *data)
     }
 
     write_xing_frame(gf, outf, id3v2_size);
-    if (writer_config[nFile].flush_write == 1) {
+    if (writer_config[num_file].flush_write == 1) {
         fflush(outf);
     }
 
-    printf(" %2d: Done\n", nFile + 1);
+    printf(" %2d: Done\n", num_file + 1);
 
     return (void *)0;
 }
