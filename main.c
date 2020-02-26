@@ -14,7 +14,7 @@
  */
 int isWAV(const char *filename)
 {
-	int len = strlen(filename);
+	size_t len = strlen(filename);
 	if (len > 4 &&
 		filename[len - 4] == '.' &&
 		filename[len - 3] == 'w' &&
@@ -34,7 +34,7 @@ int isWAV(const char *filename)
 void set_outlist(char outlist[PATH_MAX + 1], const char *filename)
 {
 	if (isWAV(filename)) {
-		int len = strlen(filename);
+		size_t len = strlen(filename);
 		strcpy(outlist, filename);
 		strcpy(outlist + len - 3, "mp3");
 	}
@@ -177,7 +177,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 	DWORD dwError = 0;
 
 	memset(szDir, 0x0, PATH_MAX);
-	len = strlen(param->szSrcfile);
+	len = strlen(param->srcfile);
 
 	if (len > (PATH_MAX - 3)) {
 		fprintf(stderr, "ERROR: The length of file name or directory path is too long.\n"
@@ -186,7 +186,7 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 	}
 
 #ifdef _UNICODE
-	mbstowcs(szDir, param->szSrcfile, len);
+	mbstowcs(szDir, param->srcfile, len);
 #else
 	strcpy(szDir, param->szSrcfile);
 #endif
@@ -203,11 +203,11 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
 			/* if param->szSrcfile is a file */
 
-			strcpy(inlist[*nFiles], param->szSrcfile);
-			if (param->szDstfile)
-				strcpy(outlist[*nFiles], param->szDstfile);
+			strcpy(inlist[*nFiles], param->srcfile);
+			if (param->dstfile)
+				strcpy(outlist[*nFiles], param->dstfile);
 			else
-				set_outlist(outlist[*nFiles], param->szSrcfile);
+				set_outlist(outlist[*nFiles], param->srcfile);
 			(*nFiles)++;
 		}
 		else if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -233,13 +233,13 @@ void get_filelist_windows(char inlist[][PATH_MAX + 1], char outlist[][PATH_MAX +
 
 				/* for recursive(-r) option */
 				if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-					&& param->bRecursion) {
+					&& param->recursion) {
 					/* ignore directory name '.\' and '..\' to prevent infinite loop */
 					if (_tcscmp(ffd.cFileName, TEXT(".")) && _tcscmp(ffd.cFileName, TEXT(".."))) {
 						opt_set_t *subdir_param;
 						subdir_param = init_optset();
-						subdir_param->szSrcfile = strdup(szTemp);
-						subdir_param->bRecursion = 1;
+						subdir_param->srcfile = strdup(szTemp);
+						subdir_param->recursion = 1;
 
 						//printf("[DEBUG] Get into %s\n", subdir_param->szSrcfile);
 						get_filelist_windows(inlist, outlist, nFiles, subdir_param);
